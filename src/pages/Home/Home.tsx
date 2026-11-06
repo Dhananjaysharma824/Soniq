@@ -71,7 +71,7 @@ export default function Home() {
           <motion.h1
             {...fadeUp}
             transition={{ duration: 0.9, delay: 0.25 }}
-            className="font-display text-5xl font-semibold tracking-tighter text-text-primary sm:text-6xl md:text-7xl lg:text-[5.5rem] leading-[0.92]"
+            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-text-primary leading-[0.95]"
           >
             ENTER THE
             <br />

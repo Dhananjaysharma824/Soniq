@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { audioEngine } from '@/audio/AudioEngine'
 import { useStore } from '@/store/useStore'
@@ -8,6 +8,28 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const mesh = useRef<THREE.Mesh>(null)
   const material = useRef<THREE.MeshPhysicalMaterial>(null)
   const settings = useStore((s) => s.settings)
+  const { size, viewport } = useThree()
+
+  // Dynamically adapt sphere scale to viewport so it never overwhelms mobile screens
+  const responsiveScale = useMemo(() => {
+    // Mobile phones (< 480px or portrait aspect < 0.65)
+    if (size.width < 480 || viewport.aspect < 0.65) {
+      return scale * 0.55
+    }
+    // Large phones / phablets (< 640px or portrait aspect < 0.85)
+    if (size.width < 640 || viewport.aspect < 0.85) {
+      return scale * 0.68
+    }
+    // Tablets in portrait (< 768px or aspect < 1.0)
+    if (size.width < 768 || viewport.aspect < 1.0) {
+      return scale * 0.78
+    }
+    // Small desktop / landscape tablets
+    if (size.width < 1024) {
+      return scale * 0.88
+    }
+    return scale
+  }, [size.width, viewport.aspect, scale])
 
   const smoothedBass = useRef(0)
   const smoothedBeat = useRef(0)
@@ -190,7 +212,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
       // Punchy kick drum scale expansion
       const pulse = 1.0 + beat * 0.15 + bass * 0.08
-      mesh.current.scale.setScalar(scale * pulse)
+      mesh.current.scale.setScalar(responsiveScale * pulse)
     }
 
     if (material.current) {
