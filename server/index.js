@@ -2,12 +2,19 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs'
 import authRoutes from './routes/auth.js'
 import profileRoutes from './routes/profile.js'
 import playlistRoutes from './routes/playlists.js'
 import musicRoutes from './routes/music.js'
 
 dotenv.config()
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const distPath = path.resolve(__dirname, '../dist')
 
 const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN || true, credentials: true }))
@@ -18,6 +25,15 @@ app.use('/api/auth', authRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/playlists', playlistRoutes)
 app.use('/api/music', musicRoutes)
+
+// Serve frontend build if dist folder exists (Production / Fullstack Deployment)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next()
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
 
 // Fallback: functional local/demo mode if DB not configured
 app.use((err, _req, res, _next) => {
