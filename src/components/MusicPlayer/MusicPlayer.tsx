@@ -347,14 +347,9 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
         </div>
       )}
 
-      {/* Main Bar */}
+      {/* Main Bar — Permanently Sticky/Fixed to Bottom across all screens */}
       <div
-        className={clsx(
-          'transition-all duration-300',
-          compact
-            ? 'mx-3 sm:mx-4 mb-3 sm:mb-4 rounded-2xl border border-white/[0.08] bg-bg-secondary/90 backdrop-blur-2xl shadow-2xl overflow-hidden'
-            : 'fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-bg-secondary/90 backdrop-blur-2xl',
-        )}
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.08] bg-bg-secondary/95 backdrop-blur-2xl shadow-2xl transition-all duration-300"
       >
         <input ref={fileRef} type="file" accept="audio/*" multiple className="hidden" onChange={onUpload} />
 

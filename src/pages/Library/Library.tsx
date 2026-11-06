@@ -92,7 +92,7 @@ export default function Library() {
 
   return (
     <div className="min-h-screen bg-bg-primary pb-32">
-      <main className="mx-auto max-w-6xl px-6 py-10 md:px-10">
+      <main className="mx-auto max-w-6xl px-6 pt-20 sm:pt-24 pb-12 md:px-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-champagne">
             Library

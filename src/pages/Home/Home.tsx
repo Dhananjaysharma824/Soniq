@@ -60,7 +60,7 @@ export default function Home() {
   return (
     <div ref={container} className="relative bg-bg-primary">
       {/* ─── HERO ─── */}
-      <section className="relative flex h-[100vh] items-center justify-center overflow-hidden -mt-[60px]">
+      <section className="relative flex h-[100vh] items-center justify-center overflow-hidden">
         <HeroCanvas />
 
         {/* Gradient overlays */}

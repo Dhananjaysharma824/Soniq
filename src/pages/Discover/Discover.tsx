@@ -215,7 +215,7 @@ export default function Discover() {
 
   return (
     <div className="min-h-screen bg-bg-primary pb-32">
-      <main className="mx-auto max-w-7xl px-6 py-10 md:px-10">
+      <main className="mx-auto max-w-7xl px-6 pt-20 sm:pt-24 pb-12 md:px-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-champagne animate-pulse" />
@@ -231,94 +231,97 @@ export default function Discover() {
           </p>
         </motion.div>
 
-        {/* Search Input Bar */}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full max-w-xl">
-            <svg
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
-              placeholder="Search across 1,000+ songs, artists, movies (e.g. Arijit Singh, Kal Ho Naa Ho, Diljit)..."
-              className="w-full rounded-full border border-white/[0.1] bg-bg-secondary/80 py-3 pl-12 pr-10 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition-all focus:border-champagne focus:ring-1 focus:ring-champagne/40"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-text-secondary hover:text-text-primary"
+        {/* Sticky Search & Category Header */}
+        <div className="sticky top-[56px] sm:top-[62px] z-30 -mx-6 px-6 sm:-mx-10 sm:px-10 py-3 mt-6 bg-bg-primary/95 backdrop-blur-2xl border-b border-white/[0.06] shadow-md transition-all">
+          {/* Search Input Bar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-xl">
+              <svg
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handlePlayAll}
-              className="inline-flex items-center gap-2 rounded-full bg-text-primary px-5 py-2.5 font-display text-xs font-semibold text-bg-primary transition-all duration-200 hover:bg-white hover:scale-105 shadow-lg"
-              title="Play all tracks in current view"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="8,5 19,12 8,19" />
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <span>Play All</span>
-            </button>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => startTransition(() => setSearchQuery(e.target.value))}
+                placeholder="Search across 1,000+ songs, artists, movies (e.g. Arijit Singh, Kal Ho Naa Ho, Diljit)..."
+                className="w-full rounded-full border border-white/[0.1] bg-bg-secondary/80 py-2.5 sm:py-3 pl-12 pr-10 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition-all focus:border-champagne focus:ring-1 focus:ring-champagne/40"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-text-secondary hover:text-text-primary"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-            <span className="font-mono text-xs text-text-secondary">
-              {displayedTracks.length} tracks loaded
-            </span>
-          </div>
-        </div>
-
-        {/* Quick Suggestion Chips */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-[11px] font-mono text-text-secondary/70 mr-1">Trending Searches:</span>
-          {QUICK_SUGGESTIONS.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => {
-                setSearchQuery(tag)
-              }}
-              className="rounded-full border border-white/[0.05] bg-bg-secondary/40 px-2.5 py-0.5 text-[11px] text-text-secondary hover:text-champagne hover:border-champagne/30 transition-colors"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-
-        {/* Curated Categories */}
-        <div className="mt-6 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => {
-            const active = activeCategory.label === cat.label && !searchQuery
-            return (
+            <div className="flex items-center gap-3">
               <button
-                key={cat.label}
-                onClick={() => {
-                  setSearchQuery('')
-                  setActiveCategory(cat)
-                }}
-                className={clsx(
-                  'whitespace-nowrap rounded-full px-4 py-2 font-sans text-xs tracking-wide transition-all duration-200',
-                  active
-                    ? 'bg-text-primary text-bg-primary font-medium shadow-md scale-[1.02]'
-                    : 'border border-white/[0.06] bg-bg-secondary/50 text-text-secondary hover:text-text-primary hover:border-white/20',
-                )}
+                onClick={handlePlayAll}
+                className="inline-flex items-center gap-2 rounded-full bg-text-primary px-5 py-2 sm:py-2.5 font-display text-xs font-semibold text-bg-primary transition-all duration-200 hover:bg-white hover:scale-105 shadow-lg"
+                title="Play all tracks in current view"
               >
-                {cat.label}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="8,5 19,12 8,19" />
+                </svg>
+                <span>Play All</span>
               </button>
-            )
-          })}
+
+              <span className="font-mono text-xs text-text-secondary">
+                {displayedTracks.length} tracks loaded
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Suggestion Chips */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[11px] font-mono text-text-secondary/70 mr-1">Trending Searches:</span>
+            {QUICK_SUGGESTIONS.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => {
+                  setSearchQuery(tag)
+                }}
+                className="rounded-full border border-white/[0.05] bg-bg-secondary/40 px-2.5 py-0.5 text-[11px] text-text-secondary hover:text-champagne hover:border-champagne/30 transition-colors"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {/* Curated Categories */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {CATEGORIES.map((cat) => {
+              const active = activeCategory.label === cat.label && !searchQuery
+              return (
+                <button
+                  key={cat.label}
+                  onClick={() => {
+                    setSearchQuery('')
+                    setActiveCategory(cat)
+                  }}
+                  className={clsx(
+                    'whitespace-nowrap rounded-full px-4 py-1.5 font-sans text-xs tracking-wide transition-all duration-200',
+                    active
+                      ? 'bg-text-primary text-bg-primary font-medium shadow-md scale-[1.02]'
+                      : 'border border-white/[0.06] bg-bg-secondary/50 text-text-secondary hover:text-text-primary hover:border-white/20',
+                  )}
+                >
+                  {cat.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Featured Spotlight Grid (Top Trending Picks) */}

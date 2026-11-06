@@ -25,12 +25,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={clsx(
-        'z-50 flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 md:px-8',
-        isHome || isExperience
-          ? 'absolute left-0 right-0 top-0'
-          : 'sticky top-0 bg-bg-primary/80 backdrop-blur-lg border-b border-white/[0.04]',
-      )}
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 md:px-8 bg-bg-primary/85 backdrop-blur-2xl border-b border-white/[0.06] shadow-lg transition-all"
     >
       {/* Left — Logo */}
       <Link to="/" className="flex items-center gap-2.5 group" aria-label="SONIQ home">
@@ -81,19 +76,17 @@ export default function Navbar() {
 
       {/* Right — Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {(isExperience || isHome) && (
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-quick-search'))}
-            className="flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all"
-            title="Search and play songs in 3D"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <span>Search</span>
-          </button>
-        )}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-quick-search'))}
+          className="flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all"
+          title="Search and play songs in 3D"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span>Search</span>
+        </button>
         {isExperience && (
           <button
             onClick={() => document.documentElement.requestFullscreen?.()}
