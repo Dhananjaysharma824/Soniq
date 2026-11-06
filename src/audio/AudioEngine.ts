@@ -66,7 +66,7 @@ export class AudioEngine {
 
   constructor(opts: AudioEngineOptions = {}) {
     this.fftSize = opts.fftSize ?? 2048
-    this.smoothing = opts.smoothing ?? 0.72
+    this.smoothing = opts.smoothing ?? 0.45
   }
 
   async init(element?: HTMLAudioElement): Promise<HTMLAudioElement> {
@@ -255,53 +255,40 @@ export class AudioEngine {
     }
     const rawAmp = Math.min(1.0, Math.sqrt(sumSq / this.waveformData.length) * 1.3)
 
-    const attack = 0.22
-    const decay = 0.08
+    // Fast, zero-lag attack with natural musical decay
+    const attack = 0.75
+    const decay = 0.22
     this.sBass += (perceivedBass - this.sBass) * (perceivedBass > this.sBass ? attack : decay)
     this.sMid += (perceivedMid - this.sMid) * (perceivedMid > this.sMid ? attack : decay)
     this.sTreble += (perceivedTreble - this.sTreble) * (perceivedTreble > this.sTreble ? attack : decay)
     this.sAmp += (rawAmp - this.sAmp) * (rawAmp > this.sAmp ? attack : decay)
 
-    // Kick rhythm detection (isolated 40Hz - 140Hz band)
-    const kickEnd = Math.max(3, Math.floor(140 / binHz))
+    // Kick drum onset detection (40Hz to 130Hz)
+    const kickEnd = Math.max(3, Math.floor(130 / binHz))
     const rawKick = this.averageRange(this.spectrumData, 1, kickEnd)
     const kickDelta = Math.max(0, rawKick - this.lastKick)
     this.lastKick = rawKick
 
-    const instantEnergy = this.sBass * 0.75 + this.sMid * 0.25
-    this.lastEnergy = instantEnergy
-
     this.energyHistory.push(rawKick)
-    if (this.energyHistory.length > this.historySize) this.energyHistory.shift()
+    if (this.energyHistory.length > 25) this.energyHistory.shift()
 
-    let avg = 0
-    for (let i = 0; i < this.energyHistory.length; i++) avg += this.energyHistory[i]
-    avg /= this.energyHistory.length || 1
+    let kickAvg = 0
+    for (let i = 0; i < this.energyHistory.length; i++) kickAvg += this.energyHistory[i]
+    kickAvg /= this.energyHistory.length || 1
 
-    let variance = 0
-    for (let i = 0; i < this.energyHistory.length; i++) {
-      const d = this.energyHistory[i] - avg
-      variance += d * d
-    }
-    variance /= this.energyHistory.length || 1
-
-    const threshold = Math.max(0.14, avg + Math.sqrt(variance) * 1.1)
     const now = performance.now()
     let beat = false
 
-    if (
-      (rawKick > threshold && kickDelta > 0.05) ||
-      kickDelta > 0.12
-    ) {
-      if (now - this.lastBeatTime > this.beatCooldown) {
-        beat = true
-        this.analysis.beatStrength = Math.min(1.0, 0.7 + kickDelta * 2.0)
-        this.lastBeatTime = now
-      }
-    }
+    // Real kick onset: sudden jump above recent baseline + substantial absolute volume
+    const isKickOnset = kickDelta > 0.08 && rawKick > kickAvg * 1.35 && rawKick > 0.18
+    const isHardPunch = kickDelta > 0.15 && rawKick > 0.22
 
-    if (!beat) {
-      this.analysis.beatStrength *= 0.88
+    if ((isKickOnset || isHardPunch) && now - this.lastBeatTime > this.beatCooldown) {
+      beat = true
+      this.analysis.beatStrength = 1.0
+      this.lastBeatTime = now
+    } else {
+      this.analysis.beatStrength *= 0.82
       if (this.analysis.beatStrength < 0.01) this.analysis.beatStrength = 0
     }
 
@@ -310,7 +297,7 @@ export class AudioEngine {
     this.analysis.treble = this.sTreble
     this.analysis.amplitude = this.sAmp
     this.analysis.beat = beat
-    this.analysis.energy = instantEnergy
+    this.analysis.energy = this.sBass * 0.75 + this.sMid * 0.25
 
     return this.analysis
   }

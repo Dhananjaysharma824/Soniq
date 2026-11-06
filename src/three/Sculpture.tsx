@@ -145,15 +145,9 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     const rawMid = (a?.mid ?? 0) * s.midSensitivity
     const treble = (a?.treble ?? 0) * s.trebleSensitivity
 
-    // Low-pass filter eliminates rapid 60Hz jitter/vibration
-    smoothedBass.current += (rawBass - smoothedBass.current) * 0.18
-    // Snaps immediately on kick beat, decays musically
-    smoothedBeat.current = Math.max(rawBeat, smoothedBeat.current * 0.88)
-    smoothedMid.current += (rawMid - smoothedMid.current) * 0.15
-
-    const bass = smoothedBass.current
-    const beat = smoothedBeat.current
-    const mid = smoothedMid.current
+    const bass = rawBass
+    const beat = rawBeat
+    const mid = rawMid
 
     // Music-driven phase: accelerates and surges rhythmically with each beat!
     phase.current += delta * (0.45 + beat * 2.8 + bass * 0.9) * motion
@@ -167,7 +161,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
     if (mesh.current) {
       // Powerful, visceral scale pulse that pumps in lockstep with the beat
-      const pulse = 1.0 + beat * 0.14 + bass * 0.08
+      const pulse = 1.0 + beat * 0.16 + bass * 0.08
       mesh.current.scale.setScalar(scale * pulse)
 
       mesh.current.rotation.y = phase.current * 0.08

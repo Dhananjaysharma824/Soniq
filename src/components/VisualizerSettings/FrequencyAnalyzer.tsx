@@ -28,8 +28,10 @@ export default function FrequencyAnalyzer() {
       const peaks = peaksRef.current
 
       for (let i = 0; i < bars; i++) {
-        const v = (spec[i * step] || 0) / 255
-        const bh = Math.max(3, v * (h - 6))
+        // Logarithmic distribution: accurately spreads bass, mids, and treble across all bars
+        const logIndex = Math.floor(Math.pow(i / (bars - 1), 2.2) * (spec.length * 0.45)) + 1
+        const v = Math.min(1.0, ((spec[Math.min(spec.length - 1, logIndex)] || 0) / 255) * 1.35)
+        const bh = Math.max(2, v * (h - 4))
         const x = i * (bw + 1.5)
 
         // Peak decay
