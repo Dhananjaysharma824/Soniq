@@ -5,6 +5,7 @@ import MusicPlayer from '@/components/MusicPlayer/MusicPlayer'
 import SettingsPanel from '@/components/VisualizerSettings/SettingsPanel'
 import { useStore, type WorldId } from '@/store/useStore'
 import { syncUserData } from '@/services/userSync'
+import { API_BASE_URL } from '@/services/apiConfig'
 
 export default function Profile() {
   const world = useStore((s) => s.world)
@@ -36,7 +37,7 @@ export default function Profile() {
 
     // Try backend auth if available
     try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login'
+      const endpoint = `${API_BASE_URL}${isRegister ? '/api/auth/register' : '/api/auth/login'}`
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

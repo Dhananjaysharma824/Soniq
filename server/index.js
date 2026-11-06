@@ -17,14 +17,20 @@ const __dirname = path.dirname(__filename)
 const distPath = path.resolve(__dirname, '../dist')
 
 const app = express()
-app.use(cors({ origin: process.env.CORS_ORIGIN || true, credentials: true }))
-app.use(express.json({ limit: '1mb' }))
+const corsOrigin = process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*' ? process.env.CORS_ORIGIN : true
+app.use(cors({ origin: corsOrigin, credentials: true }))
+app.use(express.json({ limit: '2mb' }))
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'soniq-api' }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'soniq-api', status: 'online' }))
 app.use('/api/auth', authRoutes)
 app.use('/api/profile', profileRoutes)
 app.use('/api/playlists', playlistRoutes)
 app.use('/api/music', musicRoutes)
+
+// API 404 handler for unrecognized API endpoints
+app.all('/api/*', (_req, res) => {
+  res.status(404).json({ error: 'API route not found' })
+})
 
 // Serve frontend build if dist folder exists (Production / Fullstack Deployment)
 if (fs.existsSync(distPath)) {

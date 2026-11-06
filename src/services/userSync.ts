@@ -1,4 +1,5 @@
 import { useStore, type Playlist, type Track } from '@/store/useStore'
+import { API_BASE_URL } from './apiConfig'
 
 function getToken(): string | null {
   try {
@@ -14,7 +15,7 @@ export async function syncUserData(): Promise<void> {
 
   try {
     // 1. Fetch user preferences & favourites
-    const prefRes = await fetch('/api/profile/preferences', {
+    const prefRes = await fetch(`${API_BASE_URL}/api/profile/preferences`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (prefRes.ok) {
@@ -33,7 +34,7 @@ export async function syncUserData(): Promise<void> {
     }
 
     // 2. Fetch playlists
-    const plRes = await fetch('/api/playlists', {
+    const plRes = await fetch(`${API_BASE_URL}/api/playlists`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (plRes.ok) {
@@ -86,7 +87,7 @@ export async function apiCreatePlaylist(name: string, description = '', tracks: 
   if (!token) return null
 
   try {
-    const res = await fetch('/api/playlists', {
+    const res = await fetch(`${API_BASE_URL}/api/playlists`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -109,7 +110,7 @@ export async function apiUpdatePlaylist(id: string, updates: { name?: string; de
   if (!token) return
 
   try {
-    await fetch(`/api/playlists/${id}`, {
+    await fetch(`${API_BASE_URL}/api/playlists/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -127,7 +128,7 @@ export async function apiDeletePlaylist(id: string): Promise<void> {
   if (!token) return
 
   try {
-    await fetch(`/api/playlists/${id}`, {
+    await fetch(`${API_BASE_URL}/api/playlists/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -141,7 +142,7 @@ export async function apiToggleFavourite(trackId: string): Promise<void> {
   if (!token) return
 
   try {
-    await fetch('/api/profile/favourites', {
+    await fetch(`${API_BASE_URL}/api/profile/favourites`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

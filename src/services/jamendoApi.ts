@@ -1,5 +1,7 @@
+import { API_BASE_URL } from './apiConfig'
+
 // Unified Music API service — integrates Meld architecture + Jamendo with seamless client fallback
-const API_BASE = '/api/music'
+const API_BASE = API_BASE_URL ? `${API_BASE_URL}/api/music` : '/api/music'
 
 export interface JamendoTrack {
   id: string
