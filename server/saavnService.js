@@ -28,47 +28,73 @@ function cleanHtml(str) {
     .replace(/&gt;/g, '>')
 }
 
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+  Referer: 'https://www.jiosaavn.com/',
+}
+
 export async function searchFullSongs(query, limit = 40, offset = 0) {
+  if (!query || !query.trim()) return []
+  const cleanQ = query.trim()
   const p = Math.floor(offset / limit) + 1
-  try {
-    const url = `https://www.jiosaavn.com/api.php?__call=search.getResults&q=${encodeURIComponent(
-      query,
-    )}&_format=json&_marker=0&ctx=web6dot0&p=${p}&n=${limit}`
 
-    const res = await fetch(url)
-    if (!res.ok) return []
-    const json = await res.json()
-    const results = json.results || []
-
-    return results
-      .map((r) => {
-        const audioUrl = decryptSaavnUrl(r.encrypted_media_url) || r.media_preview_url
-        if (!audioUrl) return null
-
-        const title = cleanHtml(r.song || r.title || '')
-        const artist = cleanHtml(r.singers || r.primary_artists || '')
-        const album = cleanHtml(r.album || title)
-        const artwork = (r.image || '').replace('150x150', '500x500')
-
-        return {
-          id: `saavn-${r.id}`,
-          name: title,
-          artist_name: artist,
-          album_name: album,
-          album_image: artwork,
-          image: artwork,
-          duration: Number(r.duration) || 240,
-          audio: audioUrl,
-          audiodownload: audioUrl,
-          shareurl: r.perma_url || '',
-          genre: r.language || 'Bollywood',
-          license_ccurl: '',
-        }
-      })
-      .filter(Boolean)
-  } catch (err) {
-    console.error('Saavn search error:', err.message)
-    return []
+  // Generate candidate queries (e.g. "aankhein by navjot ahuja" -> also try "aankhein navjot ahuja")
+  const queriesToTry = [cleanQ]
+  if (/\s+by\s+/i.test(cleanQ)) {
+    queriesToTry.push(cleanQ.replace(/\s+by\s+/gi, ' ').replace(/\s+/g, ' ').trim())
   }
+
+  for (const q of queriesToTry) {
+    try {
+      const url = `https://www.jiosaavn.com/api.php?__call=search.getResults&q=${encodeURIComponent(
+        q,
+      )}&_format=json&_marker=0&ctx=web6dot0&p=${p}&n=${limit}`
+
+      const res = await fetch(url, { headers: BROWSER_HEADERS })
+      if (!res.ok) continue
+      const json = await res.json()
+      const results = json.results || []
+
+      if (results.length > 0) {
+        const mapped = results
+          .map((r) => {
+            const audioUrl = decryptSaavnUrl(r.encrypted_media_url) || r.media_preview_url
+            if (!audioUrl) return null
+
+            const title = cleanHtml(r.song || r.title || '')
+            const artist = cleanHtml(r.singers || r.primary_artists || '')
+            const album = cleanHtml(r.album || title)
+            const artwork = (r.image || '').replace('150x150', '500x500')
+
+            return {
+              id: `saavn-${r.id}`,
+              name: title,
+              artist_name: artist,
+              album_name: album,
+              album_image: artwork,
+              image: artwork,
+              duration: Number(r.duration) || 240,
+              audio: audioUrl,
+              audiodownload: audioUrl,
+              shareurl: r.perma_url || '',
+              genre: r.language || 'Bollywood',
+              license_ccurl: '',
+            }
+          })
+          .filter(Boolean)
+
+        if (mapped.length > 0) {
+          return mapped
+        }
+      }
+    } catch (err) {
+      console.warn(`Saavn query [${q}] error:`, err.message)
+    }
+  }
+
+  return []
 }
 

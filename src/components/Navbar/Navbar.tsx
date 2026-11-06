@@ -26,16 +26,16 @@ export default function Navbar() {
   return (
     <header
       className={clsx(
-        'z-50 flex items-center justify-between px-5 py-4 md:px-8',
+        'z-50 flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 md:px-8',
         isHome || isExperience
           ? 'absolute left-0 right-0 top-0'
           : 'sticky top-0 bg-bg-primary/80 backdrop-blur-lg border-b border-white/[0.04]',
       )}
     >
       {/* Left — Logo */}
-      <Link to="/" className="flex items-center gap-2 group" aria-label="SONIQ home">
+      <Link to="/" className="flex items-center gap-2.5 group" aria-label="SONIQ home">
         <SoniqMark playing={isPlaying} />
-        <span className="font-display text-[15px] font-semibold tracking-tight text-text-primary">
+        <span className="font-display text-[17px] sm:text-[19px] font-bold tracking-tight text-text-primary">
           SONIQ
         </span>
       </Link>
@@ -80,7 +80,7 @@ export default function Navbar() {
       </nav>
 
       {/* Right — Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {isExperience && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-quick-search'))}
@@ -104,19 +104,19 @@ export default function Navbar() {
         )}
         <button
           onClick={() => navigate('/profile')}
-          className="font-sans text-[11px] font-medium tracking-wide text-text-secondary transition-colors hover:text-text-primary"
+          className="font-sans text-xs sm:text-[13px] font-medium tracking-wide text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all"
         >
           Profile
         </button>
         {/* Mobile menu toggle */}
         <button
           onClick={() => setMobileOpen((v) => !v)}
-          className="md:hidden flex flex-col gap-[3px] p-1"
+          className="md:hidden flex flex-col justify-center items-center gap-[4px] p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] active:scale-95 transition-all w-9 h-9"
           aria-label="Toggle menu"
         >
-          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && 'translate-y-[4.5px] rotate-45')} />
-          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && 'opacity-0')} />
-          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && '-translate-y-[4.5px] -rotate-45')} />
+          <span className={clsx('h-[2px] w-[18px] bg-text-primary rounded-full transition-all duration-200', mobileOpen && 'translate-y-[6px] rotate-45')} />
+          <span className={clsx('h-[2px] w-[18px] bg-text-primary rounded-full transition-all duration-200', mobileOpen && 'opacity-0')} />
+          <span className={clsx('h-[2px] w-[18px] bg-text-primary rounded-full transition-all duration-200', mobileOpen && '-translate-y-[6px] -rotate-45')} />
         </button>
       </div>
 
@@ -170,12 +170,12 @@ export default function Navbar() {
 
 function SoniqMark({ playing }: { playing: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden="true" className="text-text-primary">
-      <rect x="2" y="8" width="2" height="6" rx="1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
-      <rect x="6" y="5" width="2" height="12" rx="1" fill="currentColor" style={{ opacity: 0.8 }} />
-      <rect x="10" y="3" width="2" height="16" rx="1" fill="currentColor" />
-      <rect x="14" y="5" width="2" height="12" rx="1" fill="currentColor" style={{ opacity: 0.8 }} />
-      <rect x="18" y="8" width="2" height="6" rx="1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" className="text-text-primary flex-shrink-0">
+      <rect x="2" y="8" width="2.2" height="6" rx="1.1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
+      <rect x="6" y="5" width="2.2" height="12" rx="1.1" fill="currentColor" style={{ opacity: 0.8 }} />
+      <rect x="10" y="3" width="2.2" height="16" rx="1.1" fill="currentColor" />
+      <rect x="14" y="5" width="2.2" height="12" rx="1.1" fill="currentColor" style={{ opacity: 0.8 }} />
+      <rect x="18" y="8" width="2.2" height="6" rx="1.1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
     </svg>
   )
 }

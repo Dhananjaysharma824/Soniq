@@ -6,7 +6,7 @@ import AddToPlaylistModal from '@/components/AddToPlaylistModal'
 
 function mapTrack(jt: JamendoTrack): Track {
   return {
-    id: jt.id.startsWith('itunes-') ? jt.id : `saavn-${jt.id}`,
+    id: jt.id.startsWith('itunes-') || jt.id.startsWith('saavn-') ? jt.id : `saavn-${jt.id}`,
     title: jt.name,
     artist: jt.artist_name,
     album: jt.album_name,

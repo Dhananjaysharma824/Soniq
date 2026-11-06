@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { MutableRefObject } from 'react'
 import { audioEngine, type AudioAnalysis } from '@/audio/AudioEngine'
 import { demoTracks } from '@/data/demoTracks'
+import { searchTracks } from '@/services/jamendoApi'
 
 const DEMO_IDS = new Set(demoTracks.map((t) => t.id))
 import {
@@ -77,7 +78,7 @@ interface MusicState {
   playTrackDirect: (track: Track) => void
   togglePlay: () => void
   setPlaying: (v: boolean) => void
-  next: () => void
+  next: () => void | Promise<void>
   prev: () => void
   seek: (time: number) => void
   setVolume: (v: number) => void
@@ -345,25 +346,81 @@ export const useStore = create<MusicState>((set, get) => ({
   setBuffering: (b) => set({ isBuffering: b }),
   setPlaybackError: (e) => set({ playbackError: e }),
 
-  next: () => {
+  next: async () => {
     const { queue, currentIndex, shuffle, repeat } = get()
     if (queue.length === 0) return
+    const current = queue[currentIndex]
+
     if (repeat === 'one') {
       const el = audioEngine.getAudioElement()
       if (el) { el.currentTime = 0; el.play().catch(() => {}) }
       return
     }
-    let nextIdx: number
-    if (shuffle) {
-      nextIdx = Math.floor(Math.random() * queue.length)
-    } else {
-      nextIdx = currentIndex + 1
-      if (nextIdx >= queue.length) {
-        if (repeat === 'all') nextIdx = 0
-        else { set({ isPlaying: false }); return }
-      }
+
+    // 1. If shuffle is enabled, prioritize tracks with the matching genre in queue
+    if (shuffle && queue.length > 1) {
+      const currentGenre = current?.genre?.toLowerCase()?.trim()
+      const matchingIndices = queue
+        .map((t, i) => ({ t, i }))
+        .filter(({ t, i }) => i !== currentIndex && currentGenre && t.genre?.toLowerCase()?.includes(currentGenre))
+        .map(({ i }) => i)
+
+      const targetIdx =
+        matchingIndices.length > 0
+          ? matchingIndices[Math.floor(Math.random() * matchingIndices.length)]
+          : Math.floor(Math.random() * queue.length)
+
+      get().playTrack(targetIdx)
+      return
     }
-    get().playTrack(nextIdx)
+
+    // 2. Normal sequential queue progression
+    const nextIdx = currentIndex + 1
+    if (nextIdx < queue.length) {
+      get().playTrack(nextIdx)
+      return
+    }
+
+    // 3. Reached end of queue -> Auto-continue in the same genre!
+    if (repeat === 'all') {
+      get().playTrack(0)
+      return
+    }
+
+    // Auto-fetch recommended songs in the SAME GENRE or by SIMILAR ARTISTS
+    try {
+      const genreQuery = current?.genre?.trim() || current?.artist?.trim() || 'Bollywood Top Hits'
+      const similarTracks = await searchTracks(genreQuery, 20, 0)
+      if (similarTracks && similarTracks.length > 0) {
+        const existingIds = new Set(queue.map((t) => t.id))
+        const newTracks: Track[] = similarTracks
+          .filter((st) => !existingIds.has(st.id) && !existingIds.has(`saavn-${st.id}`) && !existingIds.has(`itunes-${st.id}`))
+          .map((st) => ({
+            id: st.id.startsWith('itunes-') || st.id.startsWith('saavn-') ? st.id : `saavn-${st.id}`,
+            title: st.name,
+            artist: st.artist_name,
+            album: st.album_name,
+            duration: st.duration,
+            src: st.audio || st.audiodownload,
+            artwork: st.album_image || st.image,
+            genre: current?.genre || st.genre || 'Bollywood',
+            licenseUrl: st.license_ccurl,
+          }))
+
+        if (newTracks.length > 0) {
+          const updatedQueue = [...queue, ...newTracks]
+          set({ queue: updatedQueue })
+          savePrefs({ queue: updatedQueue, currentIndex: queue.length })
+          get().playTrack(queue.length, updatedQueue)
+          return
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-next same genre load failed:', err)
+    }
+
+    // If no new tracks could be found, stop playback cleanly
+    set({ isPlaying: false })
   },
 
   prev: () => {

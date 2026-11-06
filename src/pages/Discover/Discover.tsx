@@ -44,7 +44,7 @@ const QUICK_SUGGESTIONS = [
 
 function mapJamendoTrack(jt: JamendoTrack): Track {
   return {
-    id: jt.id.startsWith('itunes-') ? jt.id : `jamendo-${jt.id}`,
+    id: jt.id.startsWith('itunes-') || jt.id.startsWith('saavn-') ? jt.id : `jamendo-${jt.id}`,
     title: jt.name,
     artist: jt.artist_name,
     album: jt.album_name,

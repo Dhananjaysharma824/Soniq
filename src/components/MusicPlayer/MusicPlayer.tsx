@@ -366,63 +366,63 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             const targetDur = duration > 0 ? duration : (track?.duration || 180)
             seek(pos * targetDur)
           }}
-          className="md:hidden relative w-full h-1 bg-white/[0.08] cursor-pointer"
+          className="md:hidden relative w-full h-1.5 bg-white/[0.12] cursor-pointer group"
         >
           <div
-            className="h-full bg-champagne transition-all"
+            className="h-full bg-champagne rounded-r-full shadow-[0_0_8px_rgba(224,184,84,0.6)] transition-all"
             style={{
               width: `${(duration > 0 ? currentTime / duration : 0) * 100}%`,
             }}
           />
         </div>
 
-        {/* MOBILE VIEW (< md) */}
-        <div className="flex md:hidden items-center justify-between gap-2.5 px-3.5 py-2">
+        {/* MOBILE VIEW (< md) — Spotify/Apple Music Style Thumb-Friendly Player */}
+        <div className="flex md:hidden items-center justify-between gap-3 px-4 py-3 sm:py-3.5">
           {/* Left: Thumbnail & Song Details */}
           <div
             onClick={() => navigate('/experience')}
-            className="flex min-w-0 flex-1 items-center gap-2.5 cursor-pointer"
+            className="flex min-w-0 flex-1 items-center gap-3 cursor-pointer"
           >
-            <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.06]">
+            <div className="relative h-13 w-13 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.1] shadow-lg">
               {track?.artwork ? (
                 <img src={track.artwork} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-text-secondary">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                   </svg>
                 </div>
               )}
               {isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <div className="flex items-end gap-0.5 h-3">
+                  <div className="flex items-end gap-0.5 h-3.5">
                     <span className="w-0.5 h-full bg-champagne rounded-full animate-bounce [animation-delay:0ms]" />
-                    <span className="w-0.5 h-2 bg-champagne rounded-full animate-bounce [animation-delay:150ms]" />
-                    <span className="w-0.5 h-3 bg-champagne rounded-full animate-bounce [animation-delay:300ms]" />
+                    <span className="w-0.5 h-2.5 bg-champagne rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-0.5 h-3.5 bg-champagne rounded-full animate-bounce [animation-delay:300ms]" />
                   </div>
                 </div>
               )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="truncate font-display text-xs font-semibold text-text-primary">
+              <div className="truncate font-display text-[14px] sm:text-[15px] font-bold text-text-primary tracking-tight">
                 {track?.title ?? 'No audio loaded'}
               </div>
-              <div className="truncate text-[10px] text-text-secondary mt-0.5">
+              <div className="truncate text-xs sm:text-[13px] text-text-secondary mt-0.5 font-medium">
                 {track?.artist ?? 'Tap to view in 3D'}
               </div>
             </div>
           </div>
 
           {/* Right: Touch Controls on Mobile */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
             {track && (
               <button
                 onClick={() => toggleFavourite(track.id, track)}
-                className={clsx('p-1.5 transition-colors', isFav ? 'text-champagne' : 'text-text-secondary/60 hover:text-text-primary')}
+                className={clsx('p-2 transition-transform active:scale-90 flex-shrink-0', isFav ? 'text-champagne' : 'text-text-secondary/60 hover:text-text-primary')}
                 title={isFav ? 'Remove from favorites' : 'Add to favorites'}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
               </button>
@@ -430,27 +430,27 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
 
             <button
               onClick={prev}
-              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors"
+              className="p-2 text-text-secondary hover:text-text-primary active:scale-90 transition-transform flex-shrink-0"
               aria-label="Previous"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
               </svg>
             </button>
 
             <button
               onClick={() => togglePlay()}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-text-primary text-bg-primary shadow-md hover:scale-105 active:scale-95 transition-transform"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-text-primary text-bg-primary shadow-lg hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isBuffering ? (
-                <div className="h-4 w-4 rounded-full border-2 border-bg-primary border-t-transparent animate-spin" />
+                <div className="h-5 w-5 rounded-full border-2 border-bg-primary border-t-transparent animate-spin" />
               ) : isPlaying ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
                 </svg>
               ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="translate-x-[1px]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="translate-x-[1px]">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -458,10 +458,10 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
 
             <button
               onClick={next}
-              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors"
+              className="p-2 text-text-secondary hover:text-text-primary active:scale-90 transition-transform flex-shrink-0"
               aria-label="Next"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
               </svg>
             </button>
@@ -471,10 +471,10 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                 setShowMoreMenu((v) => !v)
                 setShowSleepMenu(false)
               }}
-              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors rounded-lg"
+              className="p-2 text-text-secondary hover:text-text-primary active:scale-90 transition-transform rounded-lg flex-shrink-0"
               title="More options"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="12" r="2" />
                 <circle cx="19" cy="12" r="2" />
                 <circle cx="5" cy="12" r="2" />
@@ -484,13 +484,13 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             <button
               onClick={() => setShowQueue((v) => !v)}
               className={clsx(
-                'p-1.5 rounded-lg transition-colors',
-                showQueue ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary',
+                'p-2 rounded-lg transition-transform active:scale-90 flex-shrink-0',
+                showQueue ? 'text-champagne bg-white/[0.1]' : 'text-text-secondary hover:text-text-primary',
               )}
               title="Show queue"
               aria-label="Queue"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="8" y1="6" x2="21" y2="6" />
                 <line x1="8" y1="12" x2="21" y2="12" />
                 <line x1="8" y1="18" x2="21" y2="18" />

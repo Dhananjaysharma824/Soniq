@@ -63,10 +63,11 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
   // 2. Client-side fallback via Meld open metadata provider (allows searching any Bollywood / Global song)
   if (path === '/search' || path === '/popular') {
     try {
-      const term = String(params.q || (path === '/popular' ? 'Bollywood Top Hits' : ''))
-      if (term.trim()) {
+      const rawTerm = String(params.q || (path === '/popular' ? 'Bollywood Top Hits' : ''))
+      const term = rawTerm.replace(/\s+by\s+/gi, ' ').trim()
+      if (term) {
         const offsetParam = params.offset && Number(params.offset) > 0 ? `&offset=${params.offset}` : ''
-        const directUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=${params.limit || 40}${offsetParam}`
+        const directUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&country=IN&limit=${params.limit || 40}${offsetParam}`
         const res = await fetch(directUrl)
         if (res.ok) {
           const json = await res.json()
