@@ -504,23 +504,23 @@ export default function Discover() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
                     <button
                       onClick={() => {
                         handlePlay(t)
                         navigate('/experience')
                       }}
                       title="Play and view in 3D audio-reactive world"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-2.5 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all shadow-sm"
+                      className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-2 sm:px-2.5 py-1 font-mono text-[10px] sm:text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all shadow-sm whitespace-nowrap"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-champagne animate-pulse" />
-                      <span>{isCurrent ? '3D View' : 'Play in 3D'}</span>
+                      <span>{isCurrent ? '3D View' : <><span className="hidden sm:inline">Play in </span>3D</>}</span>
                     </button>
 
                     <button
                       onClick={() => addToQueue(t)}
                       title="Add to queue"
-                      className="rounded-lg p-2 text-text-secondary/70 hover:text-text-primary hover:bg-white/[0.05] transition-colors"
+                      className="rounded-lg p-1.5 sm:p-2 text-text-secondary/70 hover:text-text-primary hover:bg-white/[0.05] transition-colors"
                       aria-label="Add to queue"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

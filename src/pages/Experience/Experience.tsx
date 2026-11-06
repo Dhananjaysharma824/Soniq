@@ -74,6 +74,34 @@ export default function Experience() {
         )}
       </aside>
 
+      {/* Mobile Tune Visualizer Button */}
+      <button
+        onClick={() => setShowSettings((v) => !v)}
+        className="md:hidden absolute top-16 right-4 z-20 rounded-full border border-white/[0.1] bg-bg-secondary/80 px-3 py-1.5 text-[11px] font-mono text-champagne backdrop-blur-xl shadow-lg flex items-center gap-1.5"
+      >
+        <span>⚙️</span>
+        <span>{showSettings ? 'Close' : 'Tune 3D'}</span>
+      </button>
+
+      {/* Mobile Settings Bottom Sheet */}
+      {showSettings && (
+        <div
+          onClick={() => setShowSettings(false)}
+          className="md:hidden fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm p-3"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-white/[0.1] bg-bg-secondary/95 p-4 shadow-2xl backdrop-blur-2xl max-h-[70vh] overflow-y-auto mb-16"
+          >
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/[0.06]">
+              <span className="font-display text-sm font-semibold text-text-primary">Visualizer Settings</span>
+              <button onClick={() => setShowSettings(false)} className="text-text-secondary text-xs p-1">✕</button>
+            </div>
+            <SettingsPanel />
+          </div>
+        </div>
+      )}
+
       {/* Quick Search Modal */}
       <QuickSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
 

@@ -169,8 +169,8 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="text-[10px] font-mono text-text-secondary/70">{fmtTime(t.duration)}</span>
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                  <span className="hidden sm:inline-block text-[10px] font-mono text-text-secondary/70">{fmtTime(t.duration)}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -229,9 +229,9 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
                       playTrackDirect(t)
                       onClose()
                     }}
-                    className="rounded-full bg-champagne/15 border border-champagne/40 px-2.5 py-1 text-[10px] font-mono text-champagne hover:bg-champagne hover:text-bg-primary transition-all"
+                    className="rounded-full bg-champagne/15 border border-champagne/40 px-2 sm:px-2.5 py-1 text-[10px] font-mono text-champagne hover:bg-champagne hover:text-bg-primary transition-all whitespace-nowrap"
                   >
-                    Play in 3D
+                    <span className="hidden sm:inline">Play in </span><span>3D</span>
                   </button>
                 </div>
               </div>

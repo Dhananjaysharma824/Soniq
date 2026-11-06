@@ -261,13 +261,13 @@ export default function Library() {
         {/* TAB 2: PLAYLISTS */}
         {activeTab === 'playlists' && (
           <section className="mt-8 grid gap-8 md:grid-cols-[260px_1fr]">
-            {/* Playlist Sidebar */}
-            <div className="space-y-2">
+            {/* Playlist Sidebar / Mobile Swipe Row */}
+            <div className="flex overflow-x-auto pb-2 scrollbar-none gap-2 md:flex-col md:space-y-2 md:overflow-visible md:pb-0">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-champagne/40 bg-champagne/5 py-3 text-xs font-semibold text-champagne hover:bg-champagne/15 transition-all mb-3"
+                className="flex-shrink-0 md:w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-champagne/40 bg-champagne/5 px-4 py-2.5 md:py-3 text-xs font-semibold text-champagne hover:bg-champagne/15 transition-all md:mb-3 whitespace-nowrap"
               >
-                <span>+ Create New Playlist</span>
+                <span>+ New Playlist</span>
               </button>
 
               {playlists.map((pl) => (
@@ -278,7 +278,7 @@ export default function Library() {
                     setIsEditingTitle(false)
                   }}
                   className={clsx(
-                    'w-full flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all',
+                    'flex-shrink-0 md:w-full flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 md:py-3 text-left transition-all whitespace-nowrap md:whitespace-normal',
                     selectedPlaylistId === pl.id
                       ? 'border border-champagne/30 bg-surface text-text-primary'
                       : 'border border-transparent bg-bg-secondary/40 text-text-secondary hover:text-text-primary hover:bg-surface/50',
@@ -289,7 +289,7 @@ export default function Library() {
                     <div className="font-mono text-[10px] text-text-secondary">{pl.trackIds.length} tracks</div>
                   </div>
                   {selectedPlaylistId === pl.id && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-champagne" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-champagne flex-shrink-0" />
                   )}
                 </button>
               ))}

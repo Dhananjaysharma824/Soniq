@@ -217,10 +217,10 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
       {showQueue && (
         <div
           className={clsx(
-            'z-50 border border-white/[0.08] bg-bg-secondary/95 backdrop-blur-2xl shadow-2xl p-4 transition-all',
+            'z-50 border border-white/[0.08] bg-bg-secondary/95 backdrop-blur-2xl shadow-2xl p-3 sm:p-4 transition-all',
             compact
-              ? 'absolute bottom-16 right-4 w-84 rounded-2xl max-h-88 overflow-y-auto'
-              : 'fixed bottom-24 right-6 w-96 rounded-2xl max-h-[420px] overflow-y-auto',
+              ? 'absolute bottom-16 inset-x-3 sm:inset-x-auto sm:right-4 sm:w-84 rounded-2xl max-h-[70vh] sm:max-h-88 overflow-y-auto'
+              : 'fixed bottom-20 sm:bottom-24 inset-x-3 sm:inset-x-auto sm:right-6 sm:w-96 rounded-2xl max-h-[70vh] sm:max-h-[420px] overflow-y-auto',
           )}
         >
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-3">
@@ -352,13 +352,158 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
         className={clsx(
           'transition-all duration-300',
           compact
-            ? 'mx-4 mb-4 rounded-2xl border border-white/[0.08] bg-bg-secondary/80 backdrop-blur-2xl shadow-2xl'
-            : 'fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-bg-secondary/85 backdrop-blur-2xl',
+            ? 'mx-3 sm:mx-4 mb-3 sm:mb-4 rounded-2xl border border-white/[0.08] bg-bg-secondary/90 backdrop-blur-2xl shadow-2xl overflow-hidden'
+            : 'fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-bg-secondary/90 backdrop-blur-2xl',
         )}
       >
         <input ref={fileRef} type="file" accept="audio/*" multiple className="hidden" onChange={onUpload} />
 
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2.5 md:px-8">
+        {/* Mobile Scrubber Progress Bar */}
+        <div
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+            const targetDur = duration > 0 ? duration : (track?.duration || 180)
+            seek(pos * targetDur)
+          }}
+          className="md:hidden relative w-full h-1 bg-white/[0.08] cursor-pointer"
+        >
+          <div
+            className="h-full bg-champagne transition-all"
+            style={{
+              width: `${(duration > 0 ? currentTime / duration : 0) * 100}%`,
+            }}
+          />
+        </div>
+
+        {/* MOBILE VIEW (< md) */}
+        <div className="flex md:hidden items-center justify-between gap-2.5 px-3.5 py-2">
+          {/* Left: Thumbnail & Song Details */}
+          <div
+            onClick={() => navigate('/experience')}
+            className="flex min-w-0 flex-1 items-center gap-2.5 cursor-pointer"
+          >
+            <div className="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.06]">
+              {track?.artwork ? (
+                <img src={track.artwork} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-text-secondary">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                  </svg>
+                </div>
+              )}
+              {isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <div className="flex items-end gap-0.5 h-3">
+                    <span className="w-0.5 h-full bg-champagne rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-0.5 h-2 bg-champagne rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-0.5 h-3 bg-champagne rounded-full animate-bounce [animation-delay:300ms]" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-display text-xs font-semibold text-text-primary">
+                {track?.title ?? 'No audio loaded'}
+              </div>
+              <div className="truncate text-[10px] text-text-secondary mt-0.5">
+                {track?.artist ?? 'Tap to view in 3D'}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Touch Controls on Mobile */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {track && (
+              <button
+                onClick={() => toggleFavourite(track.id, track)}
+                className={clsx('p-1.5 transition-colors', isFav ? 'text-champagne' : 'text-text-secondary/60 hover:text-text-primary')}
+                title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
+            )}
+
+            <button
+              onClick={prev}
+              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Previous"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => togglePlay()}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-text-primary text-bg-primary shadow-md hover:scale-105 active:scale-95 transition-transform"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isBuffering ? (
+                <div className="h-4 w-4 rounded-full border-2 border-bg-primary border-t-transparent animate-spin" />
+              ) : isPlaying ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="translate-x-[1px]">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              onClick={next}
+              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors"
+              aria-label="Next"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowMoreMenu((v) => !v)
+                setShowSleepMenu(false)
+              }}
+              className="p-1.5 text-text-secondary hover:text-text-primary transition-colors rounded-lg"
+              title="More options"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+                <circle cx="5" cy="12" r="2" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => setShowQueue((v) => !v)}
+              className={clsx(
+                'p-1.5 rounded-lg transition-colors',
+                showQueue ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary',
+              )}
+              title="Show queue"
+              aria-label="Queue"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* DESKTOP VIEW (hidden md:flex) */}
+        <div className="mx-auto hidden md:flex max-w-[1600px] items-center justify-between gap-4 px-4 py-2.5 md:px-8">
           {/* LEFT: Track Info */}
           <div className="flex min-w-0 w-[30%] items-center gap-3">
             <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.05]">
@@ -561,67 +706,28 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             </button>
 
             {/* Sleep Timer Button */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowSleepMenu((v) => !v)
-                  setShowMoreMenu(false)
-                }}
-                className={clsx(
-                  'rounded-lg p-1.5 transition-colors flex items-center gap-1',
-                  sleepTimerRemaining !== null
-                    ? 'bg-champagne/15 text-champagne'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
-                )}
-                title={sleepTimerRemaining ? `Sleep timer: ${formatSleepTimer(sleepTimerRemaining)} remaining` : 'Sleep Timer'}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-                {sleepTimerRemaining !== null && (
-                  <span className="font-mono text-[10px] font-bold text-champagne">
-                    {Math.ceil(sleepTimerRemaining / 60)}m
-                  </span>
-                )}
-              </button>
-
-              {/* Sleep Timer Dropdown */}
-              {showSleepMenu && (
-                <div className="absolute bottom-10 right-0 z-50 w-44 rounded-xl border border-white/[0.1] bg-bg-secondary/95 p-2 shadow-2xl backdrop-blur-2xl space-y-1">
-                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
-                    Sleep Timer
-                  </div>
-                  {[15, 30, 45, 60].map((mins) => (
-                    <button
-                      key={mins}
-                      onClick={() => {
-                        setSleepTimer(mins)
-                        setShowSleepMenu(false)
-                        showToast(`Sleep timer set for ${mins} minutes`)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between"
-                    >
-                      <span>{mins} minutes</span>
-                      {sleepTimerRemaining && Math.round(sleepTimerRemaining / 60) === mins && (
-                        <span className="text-champagne">✓</span>
-                      )}
-                    </button>
-                  ))}
-                  {sleepTimerRemaining !== null && (
-                    <button
-                      onClick={() => {
-                        setSleepTimer(null)
-                        setShowSleepMenu(false)
-                        showToast('Sleep timer turned off')
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      Turn Off Timer
-                    </button>
-                  )}
-                </div>
+            <button
+              onClick={() => {
+                setShowSleepMenu((v) => !v)
+                setShowMoreMenu(false)
+              }}
+              className={clsx(
+                'rounded-lg p-1.5 transition-colors flex items-center gap-1',
+                sleepTimerRemaining !== null
+                  ? 'bg-champagne/15 text-champagne'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
-            </div>
+              title={sleepTimerRemaining ? `Sleep timer: ${formatSleepTimer(sleepTimerRemaining)} remaining` : 'Sleep Timer'}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              {sleepTimerRemaining !== null && (
+                <span className="font-mono text-[10px] font-bold text-champagne">
+                  {Math.ceil(sleepTimerRemaining / 60)}m
+                </span>
+              )}
+            </button>
 
             {/* Volume Control */}
             <div className="flex items-center gap-1.5">
@@ -660,108 +766,23 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             </div>
 
             {/* More Options Menu (•••) */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowMoreMenu((v) => !v)
-                  setShowSleepMenu(false)
-                }}
-                className={clsx(
-                  'rounded-lg p-1.5 transition-colors',
-                  showMoreMenu ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
-                )}
-                title="Sound & Player Options"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="19" cy="12" r="2" />
-                  <circle cx="5" cy="12" r="2" />
-                </svg>
-              </button>
-
-              {/* More Options Dropdown */}
-              {showMoreMenu && (
-                <div className="absolute bottom-10 right-0 z-50 w-52 rounded-xl border border-white/[0.1] bg-bg-secondary/95 p-2 shadow-2xl backdrop-blur-2xl space-y-1">
-                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
-                    Sound & Options
-                  </div>
-
-                  {track && (
-                    <>
-                      <button
-                        onClick={() => {
-                          handleDownload()
-                          setShowMoreMenu(false)
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                        <span>Download MP3</span>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          handleShare()
-                          setShowMoreMenu(false)
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="18" cy="5" r="3" />
-                          <circle cx="6" cy="12" r="3" />
-                          <circle cx="18" cy="19" r="3" />
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                        </svg>
-                        <span>Share Song</span>
-                      </button>
-                    </>
-                  )}
-
-                  {/* Equalizer Presets */}
-                  <div className="pt-1 mt-1 border-t border-white/[0.06]">
-                    <div className="px-2 py-1 text-[10px] font-mono text-text-secondary/70">
-                      Audio EQ Preset
-                    </div>
-                    {(['flat', 'bass', 'vocal', 'treble', 'electronic', 'acoustic'] as const).map((eq) => (
-                      <button
-                        key={eq}
-                        onClick={() => {
-                          setEqPreset(eq)
-                          setShowMoreMenu(false)
-                          showToast(`Audio EQ: ${eq.charAt(0).toUpperCase() + eq.slice(1)}`)
-                        }}
-                        className="w-full text-left px-2.5 py-1 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between capitalize"
-                      >
-                        <span>{eq === 'flat' ? 'Flat (Original)' : `${eq} Boost`}</span>
-                        {eqPreset === eq && <span className="text-champagne">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Keyboard Shortcuts Trigger */}
-                  <div className="pt-1 mt-1 border-t border-white/[0.06]">
-                    <button
-                      onClick={() => {
-                        setShowShortcutsModal(true)
-                        setShowMoreMenu(false)
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="2" y="4" width="20" height="16" rx="2" />
-                        <line x1="6" y1="8" x2="6" y2="8" />
-                        <line x1="10" y1="8" x2="10" y2="8" />
-                        <line x1="14" y1="8" x2="14" y2="8" />
-                      </svg>
-                      <span>Keyboard Shortcuts</span>
-                    </button>
-                  </div>
-                </div>
+            <button
+              onClick={() => {
+                setShowMoreMenu((v) => !v)
+                setShowSleepMenu(false)
+              }}
+              className={clsx(
+                'rounded-lg p-1.5 transition-colors',
+                showMoreMenu ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
-            </div>
+              title="Sound & Player Options"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+                <circle cx="5" cy="12" r="2" />
+              </svg>
+            </button>
 
             {/* Queue Toggle Button */}
             <button
@@ -785,6 +806,174 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
           </div>
         </div>
       </div>
+
+      {/* Sleep Timer Flyout / Modal */}
+      {showSleepMenu && (
+        <div
+          onClick={() => setShowSleepMenu(false)}
+          className="fixed inset-0 z-50 flex items-end sm:items-end justify-center sm:justify-end bg-black/60 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none p-3 sm:p-0"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:w-48 max-w-sm rounded-2xl border border-white/[0.1] bg-bg-secondary/95 p-3.5 sm:p-2.5 shadow-2xl backdrop-blur-2xl space-y-1 mb-20 sm:mb-24 sm:mr-6"
+          >
+            <div className="flex items-center justify-between px-2 py-1 text-[11px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
+              <span>Sleep Timer</span>
+              <button onClick={() => setShowSleepMenu(false)} className="sm:hidden text-text-secondary hover:text-text-primary text-xs">✕</button>
+            </div>
+            {[15, 30, 45, 60].map((mins) => (
+              <button
+                key={mins}
+                onClick={() => {
+                  setSleepTimer(mins)
+                  setShowSleepMenu(false)
+                  showToast(`Sleep timer set for ${mins} minutes`)
+                }}
+                className="w-full text-left px-3 py-2 sm:py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between"
+              >
+                <span>{mins} minutes</span>
+                {sleepTimerRemaining && Math.round(sleepTimerRemaining / 60) === mins && (
+                  <span className="text-champagne font-bold">✓</span>
+                )}
+              </button>
+            ))}
+            {sleepTimerRemaining !== null && (
+              <button
+                onClick={() => {
+                  setSleepTimer(null)
+                  setShowSleepMenu(false)
+                  showToast('Sleep timer turned off')
+                }}
+                className="w-full text-left px-3 py-2 sm:py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                Turn Off Timer
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* More Options Flyout / Sheet */}
+      {showMoreMenu && (
+        <div
+          onClick={() => setShowMoreMenu(false)}
+          className="fixed inset-0 z-50 flex items-end sm:items-end justify-center sm:justify-end bg-black/60 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none p-3 sm:p-0"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:w-60 max-w-sm rounded-2xl border border-white/[0.1] bg-bg-secondary/95 p-4 sm:p-3 shadow-2xl backdrop-blur-2xl space-y-1 mb-20 sm:mb-24 sm:mr-6 max-h-[80vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between px-2 py-1 text-[11px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
+              <span>Sound & Options</span>
+              <button onClick={() => setShowMoreMenu(false)} className="sm:hidden text-text-secondary hover:text-text-primary text-xs">✕</button>
+            </div>
+
+            {/* Speed Option on Mobile */}
+            <div className="flex items-center justify-between px-3 py-2 sm:hidden border-b border-white/[0.04]">
+              <span className="text-xs text-text-secondary">Playback Speed</span>
+              <button
+                onClick={handleCycleSpeed}
+                className="rounded-lg bg-champagne/15 px-2.5 py-1 font-mono text-xs text-champagne font-semibold border border-champagne/30"
+              >
+                {playbackRate}x
+              </button>
+            </div>
+
+            {/* Sleep Timer Trigger on Mobile */}
+            <button
+              onClick={() => {
+                setShowSleepMenu(true)
+                setShowMoreMenu(false)
+              }}
+              className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between sm:hidden"
+            >
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+                <span>Sleep Timer</span>
+              </span>
+              {sleepTimerRemaining && (
+                <span className="font-mono text-xs text-champagne font-bold">{Math.ceil(sleepTimerRemaining / 60)}m</span>
+              )}
+            </button>
+
+            {track && (
+              <>
+                <button
+                  onClick={() => {
+                    handleDownload()
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  <span>Download MP3</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleShare()
+                    setShowMoreMenu(false)
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  <span>Share Song</span>
+                </button>
+              </>
+            )}
+
+            {/* Equalizer Presets */}
+            <div className="pt-2 mt-1 border-t border-white/[0.06]">
+              <div className="px-3 py-1 text-[10px] font-mono text-text-secondary/70 uppercase tracking-wider">
+                Audio EQ Preset
+              </div>
+              {(['flat', 'bass', 'vocal', 'treble', 'electronic', 'acoustic'] as const).map((eq) => (
+                <button
+                  key={eq}
+                  onClick={() => {
+                    setEqPreset(eq)
+                    setShowMoreMenu(false)
+                    showToast(`Audio EQ: ${eq.charAt(0).toUpperCase() + eq.slice(1)}`)
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between capitalize"
+                >
+                  <span>{eq === 'flat' ? 'Flat (Original)' : `${eq} Boost`}</span>
+                  {eqPreset === eq && <span className="text-champagne font-bold">✓</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* Keyboard Shortcuts Trigger */}
+            <div className="pt-2 mt-1 border-t border-white/[0.06]">
+              <button
+                onClick={() => {
+                  setShowShortcutsModal(true)
+                  setShowMoreMenu(false)
+                }}
+                className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <line x1="6" y1="8" x2="6" y2="8" />
+                  <line x1="10" y1="8" x2="10" y2="8" />
+                  <line x1="14" y1="8" x2="14" y2="8" />
+                </svg>
+                <span>Keyboard Shortcuts (?)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Feedback Toast */}
       {toastMessage && (
