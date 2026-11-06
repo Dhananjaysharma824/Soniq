@@ -177,3 +177,4 @@ export default function AddToPlaylistModal({ track, isOpen, onClose }: AddToPlay
     </div>
   )
 }
+

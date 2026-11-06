@@ -318,13 +318,91 @@ export default function Discover() {
           })}
         </div>
 
+        {/* Featured Spotlight Grid (Top Trending Picks) */}
+        {!searchQuery && displayedTracks.length >= 4 && (
+          <section className="mt-8">
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-champagne animate-pulse" />
+                <h2 className="font-display text-lg font-semibold text-text-primary">
+                  Spotlight Picks
+                </h2>
+              </div>
+              <span className="font-mono text-[11px] text-text-secondary/70">Trending in 3D</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+              {displayedTracks.slice(0, 6).map((t) => {
+                const isCurrent = currentTrack?.id === t.id
+                const isCurrentPlaying = isCurrent && isPlaying
+
+                return (
+                  <div
+                    key={`feat-${t.id}`}
+                    onClick={() => handlePlay(t)}
+                    className="group relative cursor-pointer rounded-2xl border border-white/[0.06] bg-bg-secondary/40 hover:bg-surface/70 p-3 transition-all duration-300 hover:border-champagne/40 hover:shadow-xl hover:-translate-y-1"
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface border border-white/[0.06]">
+                      <img
+                        src={t.artwork}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          ;(e.target as HTMLImageElement).src =
+                            'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23191A19"/><circle cx="50" cy="50" r="24" fill="none" stroke="%23C5A875" stroke-width="2"/></svg>'
+                        }}
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePlay(t)
+                        }}
+                        className={clsx(
+                          'absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-champagne text-bg-primary shadow-xl transition-all duration-200',
+                          isCurrent
+                            ? 'opacity-100 scale-100'
+                            : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:scale-110',
+                        )}
+                        aria-label="Play"
+                      >
+                        {isCurrentPlaying ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="5" width="4" height="14" rx="1" />
+                            <rect x="14" y="5" width="4" height="14" rx="1" />
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="translate-x-[1px]">
+                            <polygon points="8,5 19,12 8,19" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="mt-2.5">
+                      <div
+                        className={clsx(
+                          'truncate font-display text-xs font-semibold',
+                          isCurrent ? 'text-champagne' : 'text-text-primary group-hover:text-champagne transition-colors',
+                        )}
+                      >
+                        {t.title}
+                      </div>
+                      <div className="truncate text-[11px] text-text-secondary mt-0.5">{t.artist}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Track List */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-medium text-text-primary">
               {searchQuery
                 ? `Search results for "${searchQuery}"`
-                : activeCategory.label}
+                : `${activeCategory.label} Tracks`}
             </h2>
             {loading && (
               <div className="flex items-center gap-2 text-xs text-champagne font-mono">
@@ -345,15 +423,15 @@ export default function Discover() {
                 <div
                   key={t.id}
                   className={clsx(
-                    'group flex items-center justify-between gap-3 rounded-xl border p-3 transition-all duration-200',
+                    'group flex items-center justify-between gap-3 rounded-2xl border p-2.5 sm:p-3 transition-all duration-200',
                     isCurrent
                       ? 'border-champagne/60 bg-surface/90 shadow-xl'
                       : 'border-white/[0.05] bg-bg-secondary/40 hover:border-white/[0.12] hover:bg-surface/50',
                   )}
                 >
-                  {/* Artwork & Play overlay */}
+                  {/* Artwork & Play overlay (Fixed compact square) */}
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="relative h-13 w-13 flex-shrink-0 overflow-hidden rounded-lg bg-surface border border-white/[0.06]">
+                    <div className="relative h-14 w-14 sm:h-16 sm:w-16 min-w-[56px] min-h-[56px] flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.08] shadow-sm">
                       <img
                         src={t.artwork}
                         alt=""
