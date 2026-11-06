@@ -6,7 +6,6 @@ import { useStore } from '@/store/useStore'
 
 const RING_COUNT = 72
 const TUNNEL_SPAN = 72
-const RAIL_COUNT = 8
 const TUNNEL_RADIUS = 2.85
 
 function CircularTunnelRings() {
@@ -95,54 +94,6 @@ function CircularTunnelRings() {
         <instancedBufferAttribute attach="attributes-color" args={[ringColors, 3]} />
       </meshStandardMaterial>
     </instancedMesh>
-  )
-}
-
-function CircularRails() {
-  const group = useRef<THREE.Group>(null)
-  const settings = useStore((s) => s.settings)
-
-  // 8 sleek longitudinal laser guide beams forming a smooth round cylindrical conduit
-  const rails = useMemo(() => {
-    const list: { x: number; y: number }[] = []
-    for (let i = 0; i < RAIL_COUNT; i++) {
-      const angle = (i * Math.PI * 2) / RAIL_COUNT
-      list.push({
-        x: Math.cos(angle) * TUNNEL_RADIUS,
-        y: Math.sin(angle) * TUNNEL_RADIUS,
-      })
-    }
-    return list
-  }, [])
-
-  useFrame(() => {
-    if (!group.current) return
-    const a = audioEngine.analysis
-    const s = settings
-    const beat = (a.beatStrength ?? 0) * s.beatIntensity
-    const bass = (a.bass ?? 0) * s.bassSensitivity
-
-    group.current.children.forEach((child) => {
-      const mesh = child as THREE.Mesh
-      const mat = mesh.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.35 + beat * 0.45 + bass * 0.15
-    })
-  })
-
-  return (
-    <group ref={group}>
-      {rails.map((rail, i) => (
-        <mesh
-          key={i}
-          position={[rail.x, rail.y, -26.5]}
-          rotation={[Math.PI / 2, 0, 0]}
-        >
-          {/* Round cylindrical laser guide beam */}
-          <cylinderGeometry args={[0.012, 0.012, TUNNEL_SPAN + 8, 12]} />
-          <meshBasicMaterial color="#E5C178" transparent opacity={0.4} depthWrite={false} />
-        </mesh>
-      ))}
-    </group>
   )
 }
 
@@ -257,18 +208,15 @@ export default function TunnelWorld() {
       <color attach="background" args={['#04060a']} />
       <fog attach="fog" args={['#04060a', 8, 65]} />
 
-      {/* Rim and ambient lighting without center-screen specular glare */}
-      <ambientLight intensity={0.24} />
-      <pointLight position={[0, 4.0, 2.0]} intensity={0.7} color="#D4AF37" distance={18} />
-      <pointLight position={[0, -4.0, 2.0]} intensity={0.5} color="#8ab0e0" distance={18} />
+      {/* Rim back-lighting and atmospheric lighting without any front specular glare spots */}
+      <ambientLight intensity={0.26} />
+      <pointLight position={[5.0, 0, -2.0]} intensity={0.8} color="#D4AF37" distance={22} />
+      <pointLight position={[-5.0, 0, -2.0]} intensity={0.7} color="#8ab0e0" distance={22} />
       <pointLight position={[0, 0, -30]} intensity={1.5} color="#8ab0e0" distance={50} />
       <pointLight position={[0, 0, -58]} intensity={2.8} color="#E5C178" distance={45} />
 
-      {/* Infinite travelling pure circular round rings (zero edges) */}
+      {/* Infinite travelling pure circular round rings (clean, zero straight lines/rails) */}
       <CircularTunnelRings />
-
-      {/* Smooth circular cylindrical guide rails */}
-      <CircularRails />
 
       {/* Hyperspace warp speed streaks flying past the viewer */}
       <WarpStreaks />
