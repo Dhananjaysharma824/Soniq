@@ -104,9 +104,10 @@ export default function SpaceWorld() {
       <fog attach="fog" args={['#04060c', 12, 45]} />
       <Stars />
       <Planets />
-      <mesh ref={nebula} position={[0, 0, -18]} scale={22}>
-        <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial color="#2a3a60" transparent opacity={0.06} depthWrite={false} />
+      {/* Atmospheric space nebula glow without square edges */}
+      <mesh ref={nebula} position={[0, 0, -25]}>
+        <sphereGeometry args={[28, 32, 32]} />
+        <meshBasicMaterial color="#1a284a" transparent opacity={0.05} side={THREE.BackSide} depthWrite={false} />
       </mesh>
       <ambientLight intensity={0.18} />
       <pointLight position={[6, 4, 4]} intensity={1.2} color="#9bb4ff" />

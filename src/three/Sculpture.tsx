@@ -86,16 +86,25 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 p, vec3 n) {
-           // Smooth liquid-metal surface flow
-           float slowFlow = snoise(n * 1.3 + vec3(uTime * 0.14, uTime * 0.10, uTime * 0.16)) * (0.05 + uBass * 0.04);
-           float ripples = snoise(n * 2.6 - vec3(uTime * 0.25) + vec3(uMid * 0.8)) * (0.03 + uMid * 0.03);
-           float microTwinkle = snoise(n * 5.0 + uTime * 0.4) * (uTreble * 0.02);
+           // Multi-frequency noise for radial spike waves
+           float noise1 = snoise(n * 2.1 + vec3(uTime * 0.22, uTime * 0.18, uTime * 0.26));
+           float noise2 = snoise(n * 3.8 - vec3(uTime * 0.32));
+           float noise3 = snoise(n * 6.2 + uTime * 0.5);
 
-           // Gentle acoustic surface ripple (controlled, never stretches into wings)
-           float surfaceRipple = sin(dot(n, vec3(0.0, 1.0, 0.0)) * 4.0 - uTime * 2.2) * (uBass * 0.04 + uBeat * 0.03);
+           // Exponential power curves create prominent, rounded spikes all around the perimeter
+           float spike1 = pow(max(0.0, noise1 * 0.5 + 0.5), 2.2);
+           float spike2 = pow(max(0.0, noise2 * 0.5 + 0.5), 2.0);
 
-           float rawDisp = (slowFlow + ripples + surfaceRipple + microTwinkle) * uDeform;
-           return clamp(rawDisp, -0.15, 0.15);
+           // Audio reactivity: bass and beat punch the spikes outward around the perimeter
+           float primaryWaves = spike1 * (0.08 + uBass * 0.42 + uBeat * 0.38);
+           float secondaryWaves = spike2 * (0.04 + uMid * 0.22);
+           float trebleShimmer = noise3 * (uTreble * 0.05);
+
+           // Smooth base flow
+           float baseFlow = snoise(n * 1.2 + uTime * 0.15) * 0.06;
+
+           float totalDisp = (baseFlow + primaryWaves + secondaryWaves + trebleShimmer) * uDeform;
+           return clamp(totalDisp, -0.06, 0.60);
          }
         `,
       )
@@ -142,24 +151,24 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     uniforms.uMid.value = mid
     uniforms.uTreble.value = treble
     uniforms.uBeat.value = beat
-    uniforms.uDeform.value = s.deformation * 0.75
+    uniforms.uDeform.value = s.deformation * 1.05
 
     if (mesh.current) {
-      // Gentle, luxurious continuous rotation
-      mesh.current.rotation.y = t * 0.06 * motion + mid * 0.05
-      mesh.current.rotation.x = Math.sin(t * 0.08) * 0.08 * motion + bass * 0.04
-      mesh.current.rotation.z = Math.cos(t * 0.06) * 0.05 * motion + beat * 0.03
+      // Natural organic rotation
+      mesh.current.rotation.y = t * 0.08 * motion + mid * 0.08
+      mesh.current.rotation.x = Math.sin(t * 0.09) * 0.09 * motion + bass * 0.06
+      mesh.current.rotation.z = Math.cos(t * 0.07) * 0.06 * motion + beat * 0.05
 
-      // Controlled organic breathing pulse (never explodes)
-      const pulse = 1.0 + bass * 0.04 + beat * 0.03
+      // Rhythmic core pulse
+      const pulse = 1.0 + bass * 0.06 + beat * 0.05
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Subtle, refined metallic champagne sheen
-      const glow = 0.02 + beat * 0.12 + bass * 0.05
+      // Champagne highlights along spike crests
+      const glow = 0.04 + beat * 0.28 + bass * 0.14
       material.current.emissiveIntensity = glow
-      material.current.roughness = 0.10
+      material.current.roughness = 0.11
     }
   })
 
@@ -168,18 +177,18 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
   return (
     <mesh ref={mesh} position={position}>
-      <sphereGeometry args={[0.95, segments, segments]} />
+      <sphereGeometry args={[0.90, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#E4E0D9"
-        metalness={0.98}
-        roughness={0.10}
+        color="#E6E3DC"
+        metalness={0.96}
+        roughness={0.11}
         clearcoat={1.0}
         clearcoatRoughness={0.06}
         reflectivity={1.0}
-        envMapIntensity={2.2}
+        envMapIntensity={2.4}
         emissive="#C5A875"
-        emissiveIntensity={0.02}
+        emissiveIntensity={0.03}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>
