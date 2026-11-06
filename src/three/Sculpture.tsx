@@ -9,21 +9,26 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const analysisRef = useStore((s) => s.analysisRef)
   const settings = useStore((s) => s.settings)
 
+  const phase = useRef(0)
+  const smoothedBass = useRef(0)
+  const smoothedBeat = useRef(0)
+  const smoothedMid = useRef(0)
+
   const uniforms = useMemo(
     () => ({
-      uTime: { value: 0 },
+      uPhase: { value: 0 },
       uBass: { value: 0 },
       uMid: { value: 0 },
       uTreble: { value: 0 },
       uBeat: { value: 0 },
-      uDeform: { value: 1.2 },
+      uDeform: { value: 1.1 },
     }),
     [],
   )
 
   const onBeforeCompile = useMemo(
     () => (shader: THREE.WebGLProgramParametersWithUniforms) => {
-      shader.uniforms.uTime = uniforms.uTime
+      shader.uniforms.uPhase = uniforms.uPhase
       shader.uniforms.uBass = uniforms.uBass
       shader.uniforms.uMid = uniforms.uMid
       shader.uniforms.uTreble = uniforms.uTreble
@@ -33,7 +38,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
         `#include <common>
-         uniform float uTime;
+         uniform float uPhase;
          uniform float uBass;
          uniform float uMid;
          uniform float uTreble;
@@ -86,25 +91,20 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 p, vec3 n) {
-           // Multi-frequency noise for radial spike waves
-           float noise1 = snoise(n * 2.1 + vec3(uTime * 0.22, uTime * 0.18, uTime * 0.26));
-           float noise2 = snoise(n * 3.8 - vec3(uTime * 0.32));
-           float noise3 = snoise(n * 6.2 + uTime * 0.5);
+           // Spherical harmonic waves driven by musical phase
+           float n1 = snoise(n * 2.3 + vec3(uPhase * 0.22, uPhase * 0.17, uPhase * 0.20));
+           float n2 = snoise(n * 4.0 - vec3(uPhase * 0.26));
 
-           // Exponential power curves create prominent, rounded spikes all around the perimeter
-           float spike1 = pow(max(0.0, noise1 * 0.5 + 0.5), 2.2);
-           float spike2 = pow(max(0.0, noise2 * 0.5 + 0.5), 2.0);
+           // Exponential peaks create clean, pronounced waves/spikes all around the perimeter
+           float peak = pow(max(0.0, n1 * 0.5 + 0.5), 2.2);
+           float subPeak = pow(max(0.0, n2 * 0.5 + 0.5), 1.8);
 
-           // Audio reactivity: bass and beat punch the spikes outward around the perimeter
-           float primaryWaves = spike1 * (0.08 + uBass * 0.42 + uBeat * 0.38);
-           float secondaryWaves = spike2 * (0.04 + uMid * 0.22);
-           float trebleShimmer = noise3 * (uTreble * 0.05);
+           // Rhythmic explosion on the kick beat: the waves erupt outward dynamically!
+           float spikeSurge = peak * (0.04 + uBeat * 0.50 + uBass * 0.22);
+           float bodyFlow = subPeak * (0.03 + uMid * 0.14);
 
-           // Smooth base flow
-           float baseFlow = snoise(n * 1.2 + uTime * 0.15) * 0.06;
-
-           float totalDisp = (baseFlow + primaryWaves + secondaryWaves + trebleShimmer) * uDeform;
-           return clamp(totalDisp, -0.06, 0.60);
+           float totalDisp = (spikeSurge + bodyFlow) * uDeform;
+           return clamp(totalDisp, -0.05, 0.60);
          }
         `,
       )
@@ -115,8 +115,8 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          float d = getDisplacement(position, normal);
          transformed += normal * d;
 
-         // Approximate displaced normal for realistic glistening highlights
-         float eps = 0.02;
+         // Displaced normal for realistic specular highlights
+         float eps = 0.025;
          vec3 tangent = normalize(cross(normal, vec3(0.0, 1.0, 0.0) + vec3(0.001)));
          vec3 bitangent = cross(normal, tangent);
          vec3 p1 = position + tangent * eps;
@@ -127,7 +127,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          vec3 v2 = (p2 + normalize(p2) * d2) - transformed;
          vec3 displacedNormal = normalize(cross(v1, v2));
          #ifdef USE_NORMAL
-           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.65));
+           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.75));
          #endif
         `,
       )
@@ -135,40 +135,51 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     [uniforms],
   )
 
-  useFrame((state) => {
+  useFrame((_state, delta) => {
     const a = analysisRef?.current
     const s = settings
-    const t = state.clock.elapsedTime
     const motion = s.reducedMotion ? 0 : 1
 
-    const bass = (a?.bass ?? 0) * s.bassSensitivity
-    const mid = (a?.mid ?? 0) * s.midSensitivity
+    const rawBass = (a?.bass ?? 0) * s.bassSensitivity
+    const rawBeat = (a?.beatStrength ?? 0) * s.beatIntensity
+    const rawMid = (a?.mid ?? 0) * s.midSensitivity
     const treble = (a?.treble ?? 0) * s.trebleSensitivity
-    const beat = (a?.beatStrength ?? 0) * s.beatIntensity
 
-    uniforms.uTime.value = t
+    // Low-pass filter eliminates rapid 60Hz jitter/vibration
+    smoothedBass.current += (rawBass - smoothedBass.current) * 0.18
+    // Snaps immediately on kick beat, decays musically
+    smoothedBeat.current = Math.max(rawBeat, smoothedBeat.current * 0.88)
+    smoothedMid.current += (rawMid - smoothedMid.current) * 0.15
+
+    const bass = smoothedBass.current
+    const beat = smoothedBeat.current
+    const mid = smoothedMid.current
+
+    // Music-driven phase: accelerates and surges rhythmically with each beat!
+    phase.current += delta * (0.45 + beat * 2.8 + bass * 0.9) * motion
+
+    uniforms.uPhase.value = phase.current
     uniforms.uBass.value = bass
     uniforms.uMid.value = mid
     uniforms.uTreble.value = treble
     uniforms.uBeat.value = beat
-    uniforms.uDeform.value = s.deformation * 1.05
+    uniforms.uDeform.value = s.deformation * 1.1
 
     if (mesh.current) {
-      // Natural organic rotation
-      mesh.current.rotation.y = t * 0.08 * motion + mid * 0.08
-      mesh.current.rotation.x = Math.sin(t * 0.09) * 0.09 * motion + bass * 0.06
-      mesh.current.rotation.z = Math.cos(t * 0.07) * 0.06 * motion + beat * 0.05
-
-      // Rhythmic core pulse
-      const pulse = 1.0 + bass * 0.06 + beat * 0.05
+      // Powerful, visceral scale pulse that pumps in lockstep with the beat
+      const pulse = 1.0 + beat * 0.14 + bass * 0.08
       mesh.current.scale.setScalar(scale * pulse)
+
+      mesh.current.rotation.y = phase.current * 0.08
+      mesh.current.rotation.x = Math.sin(phase.current * 0.1) * 0.08
+      mesh.current.rotation.z = Math.cos(phase.current * 0.08) * 0.05
     }
 
     if (material.current) {
-      // Champagne highlights along spike crests
-      const glow = 0.04 + beat * 0.28 + bass * 0.14
+      // Glow flares up brightly on the beat hit
+      const glow = 0.02 + beat * 0.45 + bass * 0.15
       material.current.emissiveIntensity = glow
-      material.current.roughness = 0.11
+      material.current.roughness = Math.max(0.06, 0.12 - beat * 0.05)
     }
   })
 

@@ -48,10 +48,11 @@ export class AudioEngine {
 
   // Beat & Transient detection state
   private lastBeatTime = 0
-  private beatCooldown = 110 // ms between fast transients
+  private beatCooldown = 260 // ms - musical tempo cadence (prevents 10Hz buzzing/vibration)
   private energyHistory: number[] = []
   private historySize = 40
   private adaptiveSensitivity = 1.25
+  private lastKick = 0
 
   // Smoothed perceptual frequency outputs
   private sBass = 0
@@ -261,11 +262,16 @@ export class AudioEngine {
     this.sTreble += (perceivedTreble - this.sTreble) * (perceivedTreble > this.sTreble ? attack : decay)
     this.sAmp += (rawAmp - this.sAmp) * (rawAmp > this.sAmp ? attack : decay)
 
-    const instantEnergy = this.sBass * 0.65 + this.sMid * 0.35
-    const energyDelta = Math.max(0, instantEnergy - this.lastEnergy)
+    // Kick rhythm detection (isolated 40Hz - 140Hz band)
+    const kickEnd = Math.max(3, Math.floor(140 / binHz))
+    const rawKick = this.averageRange(this.spectrumData, 1, kickEnd)
+    const kickDelta = Math.max(0, rawKick - this.lastKick)
+    this.lastKick = rawKick
+
+    const instantEnergy = this.sBass * 0.75 + this.sMid * 0.25
     this.lastEnergy = instantEnergy
 
-    this.energyHistory.push(instantEnergy)
+    this.energyHistory.push(rawKick)
     if (this.energyHistory.length > this.historySize) this.energyHistory.shift()
 
     let avg = 0
@@ -279,31 +285,24 @@ export class AudioEngine {
     }
     variance /= this.energyHistory.length || 1
 
-    const dynamicThreshold = avg + Math.sqrt(variance) * this.adaptiveSensitivity
-    const threshold = Math.max(0.18, Math.min(0.85, dynamicThreshold))
-
+    const threshold = Math.max(0.14, avg + Math.sqrt(variance) * 1.1)
     const now = performance.now()
     let beat = false
-    let beatStrength = 0
 
     if (
-      (instantEnergy > threshold || energyDelta > 0.12) &&
-      instantEnergy > 0.12 &&
-      now - this.lastBeatTime > this.beatCooldown
+      (rawKick > threshold && kickDelta > 0.05) ||
+      kickDelta > 0.12
     ) {
-      beat = true
-      beatStrength = Math.min(
-        1.0,
-        (instantEnergy - threshold) / Math.max(0.01, 1 - threshold) + 0.4 + energyDelta * 1.5,
-      )
-      this.lastBeatTime = now
+      if (now - this.lastBeatTime > this.beatCooldown) {
+        beat = true
+        this.analysis.beatStrength = Math.min(1.0, 0.7 + kickDelta * 2.0)
+        this.lastBeatTime = now
+      }
     }
 
     if (!beat) {
-      this.analysis.beatStrength *= 0.82
+      this.analysis.beatStrength *= 0.88
       if (this.analysis.beatStrength < 0.01) this.analysis.beatStrength = 0
-    } else {
-      this.analysis.beatStrength = Math.max(this.analysis.beatStrength, beatStrength)
     }
 
     this.analysis.bass = this.sBass
