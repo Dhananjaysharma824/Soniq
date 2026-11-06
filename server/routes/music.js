@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { searchFullSongs } from '../saavnService.js'
 
 const router = Router()
 const JAMENDO_BASE = 'https://api.jamendo.com/v3.0'
@@ -62,10 +63,23 @@ async function jamendoFetch(endpoint, params = {}) {
 
 // GET /api/music/search?q=...&limit=...&offset=...
 router.get('/search', async (req, res) => {
-  const { q, limit = 24, offset = 0 } = req.query
+  const { q, limit = 40, offset = 0 } = req.query
   if (!q) return res.status(400).json({ error: 'Query parameter "q" is required' })
 
-  // 1. Try Jamendo if client ID is configured
+  // 1. Primary: Search Full-Length 320kbps Songs
+  try {
+    const fullSongs = await searchFullSongs(q, Number(limit) || 40, Number(offset) || 0)
+    if (fullSongs && fullSongs.length > 0) {
+      return res.json({
+        headers: { status: 'success', code: 0, results_count: fullSongs.length },
+        results: fullSongs,
+      })
+    }
+  } catch (err) {
+    console.warn('Full song search error, falling back:', err.message)
+  }
+
+  // 2. Try Jamendo if client ID is configured
   if (getClientId()) {
     try {
       const data = await jamendoFetch('tracks', {
@@ -79,13 +93,13 @@ router.get('/search', async (req, res) => {
         return res.json(data)
       }
     } catch (err) {
-      console.warn('Jamendo query failed, falling back to Meld search:', err.message)
+      console.warn('Jamendo query failed:', err.message)
     }
   }
 
-  // 2. Fall back to Meld universal search engine (instant access to Bollywood, Indian, and Global music)
+  // 3. Fall back to Meld search engine
   try {
-    const meldResults = await meldSearch(q, Number(limit) || 50, Number(offset) || 0)
+    const meldResults = await meldSearch(q, Number(limit) || 40, Number(offset) || 0)
     res.json({
       headers: { status: 'success', code: 0, results_count: meldResults.length },
       results: meldResults,
@@ -98,34 +112,29 @@ router.get('/search', async (req, res) => {
 
 // GET /api/music/popular?limit=...&offset=...&order=...
 router.get('/popular', async (req, res) => {
-  const { limit = 50, offset = 0, order = 'popularity_total' } = req.query
+  const { limit = 40, offset = 0 } = req.query
 
-  // 1. Try Jamendo if client ID configured
-  if (getClientId()) {
-    try {
-      const data = await jamendoFetch('tracks', {
-        limit,
-        offset,
-        order,
-        include: 'musicinfo',
-        imagesize: 600,
-      })
-      if (data && data.results && data.results.length > 0) {
-        return res.json(data)
-      }
-    } catch (err) {
-      console.warn('Jamendo popular failed, falling back to Meld trending:', err.message)
-    }
-  }
-
-  // 2. Fall back to Trending Bollywood & Global charts
+  // 1. Trending Full-Length Bollywood & Global charts
   try {
     const trendingQueries = ['Bollywood top hits', 'Arijit Singh', 'Pritam', 'Trending Indian Music']
     const pick = trendingQueries[Math.floor(Math.random() * trendingQueries.length)]
-    const results = await meldSearch(pick, Number(limit) || 50, Number(offset) || 0)
+    const fullSongs = await searchFullSongs(pick, Number(limit) || 40, Number(offset) || 0)
+    if (fullSongs && fullSongs.length > 0) {
+      return res.json({
+        headers: { status: 'success', code: 0, results_count: fullSongs.length },
+        results: fullSongs,
+      })
+    }
+  } catch (err) {
+    console.warn('Full songs trending failed, trying fallback:', err.message)
+  }
+
+  // 2. Fall back to Meld trending
+  try {
+    const meldResults = await meldSearch('Bollywood top hits', Number(limit) || 40, Number(offset) || 0)
     res.json({
-      headers: { status: 'success', code: 0, results_count: results.length },
-      results,
+      headers: { status: 'success', code: 0, results_count: meldResults.length },
+      results: meldResults,
     })
   } catch (err) {
     console.error('Popular tracks error:', err.message)
