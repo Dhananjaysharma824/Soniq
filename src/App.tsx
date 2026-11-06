@@ -32,11 +32,17 @@ export default function App() {
       (t) => !demoIds.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
     )
     if (cleanQueue.length !== currentQueue.length) {
+      const nextIdx = cleanQueue.length > 0 ? Math.min(useStore.getState().currentIndex, cleanQueue.length - 1) : -1
       useStore.setState({
         queue: cleanQueue,
-        currentIndex: cleanQueue.length > 0 ? Math.min(useStore.getState().currentIndex, cleanQueue.length - 1) : -1,
+        currentIndex: nextIdx,
         isPlaying: cleanQueue.length > 0 ? useStore.getState().isPlaying : false,
       })
+      try {
+        const raw = localStorage.getItem('soniq-prefs')
+        const prev = raw ? JSON.parse(raw) : {}
+        localStorage.setItem('soniq-prefs', JSON.stringify({ ...prev, queue: cleanQueue, currentIndex: nextIdx }))
+      } catch {}
     }
   }, [])
 

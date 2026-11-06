@@ -146,15 +146,29 @@ for (const [k, v] of Object.entries(rawSavedTracks)) {
   }
 }
 
+// Restore saved queue across page reloads
+const rawQueue: Track[] = Array.isArray(prefs.queue) ? prefs.queue : []
+const initialQueue: Track[] = rawQueue.filter(
+  (t) => t && t.id && !DEMO_IDS.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
+)
+const initialIndex: number =
+  typeof prefs.currentIndex === 'number' && prefs.currentIndex >= 0 && prefs.currentIndex < initialQueue.length
+    ? prefs.currentIndex
+    : initialQueue.length > 0
+      ? 0
+      : -1
+
+const initialTrack = initialIndex >= 0 ? initialQueue[initialIndex] : null
+
 export const useStore = create<MusicState>((set, get) => ({
   tracks: Object.values(initialSavedTracks),
-  queue: [],
-  currentIndex: -1,
+  queue: initialQueue,
+  currentIndex: initialIndex,
   isPlaying: false,
   isBuffering: false,
   playbackError: null,
   currentTime: 0,
-  duration: 0,
+  duration: initialTrack?.duration || 0,
   volume: prefs.volume ?? 0.8,
   muted: false,
   shuffle: false,
@@ -216,6 +230,7 @@ export const useStore = create<MusicState>((set, get) => ({
       playbackError: null,
       isBuffering: true,
     })
+    savePrefs({ queue: q, currentIndex: index })
 
     let el = audioEngine.getAudioElement()
     if (!el) {
@@ -253,10 +268,12 @@ export const useStore = create<MusicState>((set, get) => ({
     const idx = cleanQueue.findIndex((t) => t.id === track.id)
     if (idx >= 0) {
       set({ queue: cleanQueue })
+      savePrefs({ queue: cleanQueue, currentIndex: idx })
       get().playTrack(idx, cleanQueue)
     } else {
       const nextQueue = [...cleanQueue, track]
       set({ queue: nextQueue })
+      savePrefs({ queue: nextQueue, currentIndex: nextQueue.length - 1 })
       get().playTrack(nextQueue.length - 1, nextQueue)
     }
   },
@@ -501,13 +518,16 @@ export const useStore = create<MusicState>((set, get) => ({
     )
     if (cleanQueue.some((t) => t.id === track.id)) {
       set({ queue: cleanQueue })
+      savePrefs({ queue: cleanQueue })
       return
     }
     const nextQueue = [...cleanQueue, track]
+    const nextIdx = currentIndex === -1 ? 0 : currentIndex
     set({
       queue: nextQueue,
-      currentIndex: currentIndex === -1 ? 0 : currentIndex,
+      currentIndex: nextIdx,
     })
+    savePrefs({ queue: nextQueue, currentIndex: nextIdx })
     get().setTracks([track])
   },
 
@@ -518,12 +538,14 @@ export const useStore = create<MusicState>((set, get) => ({
       const el = audioEngine.getAudioElement()
       el?.pause()
       set({ queue: [], currentIndex: -1, isPlaying: false, currentTime: 0, duration: 0, playbackError: null })
+      savePrefs({ queue: [], currentIndex: -1 })
       return
     }
 
     if (index === currentIndex) {
       const nextIndex = index >= q.length ? q.length - 1 : index
       set({ queue: q, currentIndex: nextIndex })
+      savePrefs({ queue: q, currentIndex: nextIndex })
       if (isPlaying) {
         get().playTrack(nextIndex, q)
       } else {
@@ -533,6 +555,7 @@ export const useStore = create<MusicState>((set, get) => ({
     } else {
       const nextIndex = index < currentIndex ? currentIndex - 1 : currentIndex
       set({ queue: q, currentIndex: nextIndex })
+      savePrefs({ queue: q, currentIndex: nextIndex })
     }
   },
 
@@ -540,6 +563,7 @@ export const useStore = create<MusicState>((set, get) => ({
     const el = audioEngine.getAudioElement()
     el?.pause()
     set({ queue: [], currentIndex: -1, isPlaying: false, currentTime: 0, duration: 0, playbackError: null })
+    savePrefs({ queue: [], currentIndex: -1 })
   },
 }))
 
