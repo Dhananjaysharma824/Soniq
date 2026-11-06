@@ -4,21 +4,21 @@ import * as THREE from 'three'
 import { audioEngine } from '@/audio/AudioEngine'
 import { useStore } from '@/store/useStore'
 
-const RING_COUNT = 64
-const TUNNEL_SPAN = 68
-const RAIL_COUNT = 6
-const TUNNEL_RADIUS = 2.75
+const RING_COUNT = 72
+const TUNNEL_SPAN = 72
+const RAIL_COUNT = 8
+const TUNNEL_RADIUS = 2.85
 
-function TunnelRings() {
+function CircularTunnelRings() {
   const mesh = useRef<THREE.InstancedMesh>(null)
   const settings = useStore((s) => s.settings)
   const dummy = useMemo(() => new THREE.Object3D(), [])
   const progress = useRef(0)
   const smoothedSpeed = useRef(8.0)
 
-  // Color palette for regular vs accent rings
-  const baseColor = useMemo(() => new THREE.Color('#383c48'), [])
-  const accentColor = useMemo(() => new THREE.Color('#D4AF37'), [])
+  // Color palette for regular vs accent golden rings
+  const baseColor = useMemo(() => new THREE.Color('#323744'), [])
+  const accentColor = useMemo(() => new THREE.Color('#E0B854'), [])
   const ringColors = useMemo(() => {
     const arr = new Float32Array(RING_COUNT * 3)
     for (let i = 0; i < RING_COUNT; i++) {
@@ -40,38 +40,38 @@ function TunnelRings() {
     const bass = (a.bass ?? 0) * s.bassSensitivity
     const beat = (a.beatStrength ?? 0) * s.beatIntensity
     const mid = (a.mid ?? 0) * s.midSensitivity
-    const treble = (a.treble ?? 0) * s.trebleSensitivity
 
-    // Target flight speed: base cruising speed + punchy forward warp surge on kicks
-    const targetSpeed = (7.5 + bass * 12.0 + beat * 22.0) * motion
+    // Cruising speed + instant music warp surge on kicks
+    const targetSpeed = (8.0 + bass * 12.0 + beat * 22.0) * motion
     smoothedSpeed.current += (targetSpeed - smoothedSpeed.current) * Math.min(1.0, delta * 12.0)
     progress.current += smoothedSpeed.current * delta
 
     const mat = mesh.current.material as THREE.MeshStandardMaterial
-    mat.emissiveIntensity = 0.25 + beat * 0.95 + bass * 0.35
+    mat.emissiveIntensity = 0.22 + beat * 0.95 + bass * 0.35
 
     const spacing = TUNNEL_SPAN / RING_COUNT
 
     for (let i = 0; i < RING_COUNT; i++) {
-      // Endless seamless forward travel along Z towards camera
+      // Seamless circular ring travel along Z towards camera
       const rawZ = (i * spacing + progress.current) % TUNNEL_SPAN
-      const z = rawZ - (TUNNEL_SPAN - 7.0) // Travels from -61 to +7 (past camera at 5.2)
+      const z = rawZ - (TUNNEL_SPAN - 7.0) // Travels from -65 to +7 (past camera at 5.2)
 
       const isAccent = i % 4 === 0
 
-      // Dynamic audio shockwave expansion
-      let scale = 1.0 + bass * 0.14 + (isAccent ? beat * 0.28 : beat * 0.08)
+      // Audio-reactive circular expansion wave
+      let scale = 1.0 + bass * 0.12 + (isAccent ? beat * 0.26 : beat * 0.07)
 
-      // Smooth expansion as it passes camera to avoid hard clipping
+      // Smooth expansion as it passes behind camera to avoid clipping
       if (z > 3.8) {
         scale *= 1.0 + (z - 3.8) * 0.45
       }
 
-      // Mesmerizing gentle spiral twist down the tunnel length
-      const rotZ = i * 0.045 + Math.sin(progress.current * 0.08 + i * 0.03) * 0.25 + mid * 0.15
+      // Subtle hypnotic tilt that flows with mid frequencies
+      const rotX = Math.sin(progress.current * 0.05 + i * 0.08) * (0.02 + mid * 0.03)
+      const rotY = Math.cos(progress.current * 0.05 + i * 0.08) * (0.02 + mid * 0.03)
 
       dummy.position.set(0, 0, z)
-      dummy.rotation.set(0, 0, rotZ)
+      dummy.rotation.set(rotX, rotY, 0)
       dummy.scale.set(scale, scale, 1.0)
       dummy.updateMatrix()
 
@@ -83,12 +83,12 @@ function TunnelRings() {
 
   return (
     <instancedMesh ref={mesh} args={[undefined, undefined, RING_COUNT]}>
-      {/* Hexagonal torus profile with 3D tube thickness */}
-      <torusGeometry args={[TUNNEL_RADIUS, 0.038, 8, 6]} />
+      {/* Pure, perfectly smooth round circular rings (72 tubular segments = 0 flat edges) */}
+      <torusGeometry args={[TUNNEL_RADIUS, 0.032, 16, 72]} />
       <meshStandardMaterial
-        color="#8c93a0"
+        color="#848b99"
         metalness={0.92}
-        roughness={0.18}
+        roughness={0.16}
         emissive="#D4AF37"
         emissiveIntensity={0.25}
       >
@@ -98,19 +98,18 @@ function TunnelRings() {
   )
 }
 
-function TunnelRails() {
+function CircularRails() {
   const group = useRef<THREE.Group>(null)
   const settings = useStore((s) => s.settings)
 
-  // 6 Longitudinal glowing guide rails running along the edges of the hexagon
+  // 8 sleek longitudinal laser guide beams forming a smooth round cylindrical conduit
   const rails = useMemo(() => {
-    const list: { x: number; y: number; angle: number }[] = []
+    const list: { x: number; y: number }[] = []
     for (let i = 0; i < RAIL_COUNT; i++) {
       const angle = (i * Math.PI * 2) / RAIL_COUNT
       list.push({
         x: Math.cos(angle) * TUNNEL_RADIUS,
         y: Math.sin(angle) * TUNNEL_RADIUS,
-        angle,
       })
     }
     return list
@@ -126,7 +125,7 @@ function TunnelRails() {
     group.current.children.forEach((child) => {
       const mesh = child as THREE.Mesh
       const mat = mesh.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.45 + beat * 0.45 + bass * 0.15
+      mat.opacity = 0.35 + beat * 0.45 + bass * 0.15
     })
   })
 
@@ -138,8 +137,9 @@ function TunnelRails() {
           position={[rail.x, rail.y, -26.5]}
           rotation={[Math.PI / 2, 0, 0]}
         >
-          <cylinderGeometry args={[0.02, 0.02, TUNNEL_SPAN + 8, 6]} />
-          <meshBasicMaterial color="#E5C178" transparent opacity={0.5} depthWrite={false} />
+          {/* Round cylindrical laser guide beam */}
+          <cylinderGeometry args={[0.012, 0.012, TUNNEL_SPAN + 8, 12]} />
+          <meshBasicMaterial color="#E5C178" transparent opacity={0.4} depthWrite={false} />
         </mesh>
       ))}
     </group>
@@ -189,7 +189,6 @@ function WarpStreaks({ count = 260 }) {
     const { baseZ, speeds } = streakData
 
     for (let i = 0; i < count; i++) {
-      // Warp streaks rush forward along Z
       const rawZ = (baseZ[i] + progress.current * speeds[i]) % TUNNEL_SPAN
       const z = rawZ - (TUNNEL_SPAN - 7.0)
 
@@ -198,7 +197,7 @@ function WarpStreaks({ count = 260 }) {
     posAttr.needsUpdate = true
 
     const mat = ref.current.material as THREE.PointsMaterial
-    mat.size = 0.045 + treble * 0.05 + beat * 0.04
+    mat.size = 0.04 + treble * 0.05 + beat * 0.04
     mat.opacity = 0.35 + beat * 0.45 + treble * 0.2
   })
 
@@ -209,7 +208,7 @@ function WarpStreaks({ count = 260 }) {
       </bufferGeometry>
       <pointsMaterial
         color="#F0D399"
-        size={0.045}
+        size={0.04}
         transparent
         opacity={0.45}
         depthWrite={false}
@@ -239,7 +238,7 @@ function VanishingCore() {
 
   return (
     <mesh ref={mesh} position={[0, 0, -60]}>
-      <sphereGeometry args={[2.5, 24, 24]} />
+      <sphereGeometry args={[2.5, 32, 32]} />
       <meshBasicMaterial
         color="#E5C178"
         transparent
@@ -258,17 +257,18 @@ export default function TunnelWorld() {
       <color attach="background" args={['#04060a']} />
       <fog attach="fog" args={['#04060a', 8, 65]} />
 
-      {/* Balanced ambient & rim lighting for high-tech cyber tunnel */}
-      <ambientLight intensity={0.22} />
-      <pointLight position={[0, 0, 4]} intensity={0.9} color="#D4AF37" distance={16} />
+      {/* Rim and ambient lighting without center-screen specular glare */}
+      <ambientLight intensity={0.24} />
+      <pointLight position={[0, 4.0, 2.0]} intensity={0.7} color="#D4AF37" distance={18} />
+      <pointLight position={[0, -4.0, 2.0]} intensity={0.5} color="#8ab0e0" distance={18} />
       <pointLight position={[0, 0, -30]} intensity={1.5} color="#8ab0e0" distance={50} />
       <pointLight position={[0, 0, -58]} intensity={2.8} color="#E5C178" distance={45} />
 
-      {/* Infinite travelling hexagonal tunnel rings */}
-      <TunnelRings />
+      {/* Infinite travelling pure circular round rings (zero edges) */}
+      <CircularTunnelRings />
 
-      {/* 6 glowing longitudinal guide rails defining perspective lines */}
-      <TunnelRails />
+      {/* Smooth circular cylindrical guide rails */}
+      <CircularRails />
 
       {/* Hyperspace warp speed streaks flying past the viewer */}
       <WarpStreaks />
