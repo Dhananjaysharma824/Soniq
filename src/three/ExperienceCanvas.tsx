@@ -56,7 +56,7 @@ export default function ExperienceCanvas() {
           <World id={world} />
           <Sculpture />
           <Particles color={particleColor} />
-          <Environment preset={world === 'ocean' ? 'city' : world === 'dream' ? 'dawn' : 'night'} environmentIntensity={0.35} />
+          <Environment preset={world === 'ocean' ? 'city' : world === 'dream' ? 'dawn' : 'studio'} environmentIntensity={0.90} />
         </Suspense>
         {showPost && (
           <EffectComposer multisampling={0}>

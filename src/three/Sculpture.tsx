@@ -90,34 +90,30 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
            return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
          }
 
-         float getDisplacement(vec3 p, vec3 n) {
-           // Spherical coordinates: angle around front-facing silhouette circle (XY view plane)
-           float angle = atan(n.y, n.x);
-           float elevation = acos(clamp(n.z, -1.0, 1.0));
+         vec3 getOrthogonal(vec3 v) {
+           float x = abs(v.x);
+           float y = abs(v.y);
+           float z = abs(v.z);
+           vec3 other = x < y ? (x < z ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0)) : (y < z ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0));
+           return normalize(cross(v, other));
+         }
 
-           // 12 distinct radial wave petals matching the exact user drawing (pink spikes)
-           float petals = cos(angle * 12.0 + uPhase * 0.20);
-           // Sharpen into distinct protruding peaks
-           float spikeShape = pow(max(0.0, petals), 2.2);
+         float getDisplacement(vec3 n) {
+           // 10 to 14 distinct standing wave spikes distributed evenly across 3D sphere
+           // Coordinates are fixed to the sphere body (never swimming or vibrating!)
+           float n1 = snoise(n * 3.4);
+           // Sharpen into distinct protruding peaks (matching user drawing)
+           float spikes = pow(max(0.0, n1), 2.2);
 
-           // Latitude envelope: highest around visible silhouette rim, tapering to poles
-           float rimMask = sin(elevation);
-           float rimSpikes = spikeShape * rimMask;
+           // Harmonic mid-frequency detail
+           float n2 = snoise(n * 6.8);
+           float midDetail = pow(max(0.0, n2), 1.8) * 0.4;
 
-           // 3D secondary harmonics for organic depth across the back and sides
-           float wave3d = pow(max(0.0, sin(n.x * 6.0 + uPhase * 0.12) * cos(n.y * 6.0) * sin(n.z * 6.0)), 2.0);
+           // Rhythmic audio drive: peaks erupt outward with kicks and bass
+           float spikeSurge = spikes * (0.04 + uBass * 0.40 + uBeat * 0.45);
+           float midSurge = midDetail * (0.02 + uMid * 0.18);
 
-           // Gentle acoustic ripples on front face
-           float frontRipples = sin(length(n.xy) * 14.0 - uPhase * 1.5) * 0.5 + 0.5;
-           frontRipples = pow(frontRipples, 2.0) * max(0.0, n.z);
-
-           // Combine: 12 clean, distinct wave spikes that shoot outward in lockstep with the rhythm
-           float wavePattern = rimSpikes * 0.80 + wave3d * 0.15 + frontRipples * 0.15;
-
-           // Dynamic eruption on beat and bass!
-           float spikeHeight = wavePattern * (0.05 + uBass * 0.35 + uBeat * 0.42);
-
-           float totalDisp = spikeHeight * uDeform;
+           float totalDisp = (spikeSurge + midSurge) * uDeform;
            return clamp(totalDisp, 0.0, 0.65);
          }
         `,
@@ -126,22 +122,23 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-         float d = getDisplacement(position, normal);
+         float d = getDisplacement(normal);
          transformed += normal * d;
 
-         // Displaced normal for realistic specular highlights
-         float eps = 0.025;
-         vec3 tangent = normalize(cross(normal, vec3(0.0, 1.0, 0.0) + vec3(0.001)));
-         vec3 bitangent = cross(normal, tangent);
-         vec3 p1 = position + tangent * eps;
-         vec3 p2 = position + bitangent * eps;
-         float d1 = getDisplacement(p1, normalize(p1));
-         float d2 = getDisplacement(p2, normalize(p2));
-         vec3 v1 = (p1 + normalize(p1) * d1) - transformed;
-         vec3 v2 = (p2 + normalize(p2) * d2) - transformed;
+         // Singularity-free orthonormal tangent frame
+         float eps = 0.015;
+         vec3 t = getOrthogonal(normal);
+         vec3 b = cross(normal, t);
+         vec3 p1 = position + t * eps;
+         vec3 p2 = position + b * eps;
+         float d1 = getDisplacement(normalize(p1));
+         float d2 = getDisplacement(normalize(p2));
+         vec3 v0 = position + normal * d;
+         vec3 v1 = (p1 + normalize(p1) * d1) - v0;
+         vec3 v2 = (p2 + normalize(p2) * d2) - v0;
          vec3 displacedNormal = normalize(cross(v1, v2));
          #ifdef USE_NORMAL
-           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.75));
+           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.80));
          #endif
         `,
       )
@@ -160,8 +157,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     const mid = (a.mid ?? 0) * s.midSensitivity
     const treble = (a.treble ?? 0) * s.trebleSensitivity
 
-    // Music-driven phase: smooth regal rotation, slightly accelerated by rhythm (never jittery)
-    phase.current += delta * (0.35 + bass * 0.35 + beat * 0.45) * motion
+    phase.current += delta * motion
 
     uniforms.uPhase.value = phase.current
     uniforms.uBass.value = bass
@@ -171,20 +167,20 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     uniforms.uDeform.value = s.deformation
 
     if (mesh.current) {
-      // Visceral, punchy scale pulse that pops in direct lockstep with the kick drum
-      const pulse = 1.0 + beat * 0.16 + bass * 0.08
-      mesh.current.scale.setScalar(scale * pulse)
+      // Smooth, majestic studio spin
+      mesh.current.rotation.y += delta * 0.22 * motion
+      mesh.current.rotation.x = Math.sin(phase.current * 0.4) * 0.06
 
-      mesh.current.rotation.y = phase.current * 0.08
-      mesh.current.rotation.x = Math.sin(phase.current * 0.09) * 0.06
-      mesh.current.rotation.z = Math.cos(phase.current * 0.07) * 0.04
+      // Punchy kick drum scale expansion
+      const pulse = 1.0 + beat * 0.18 + bass * 0.08
+      mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // High-energy champagne flare on beat impact
-      const glow = 0.03 + beat * 0.45 + bass * 0.15
+      // Liquid champagne flare on beat impact
+      const glow = 0.04 + beat * 0.50 + bass * 0.18
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.06, 0.13 - beat * 0.07)
+      material.current.roughness = Math.max(0.04, 0.10 - beat * 0.06)
     }
   })
 
@@ -196,15 +192,15 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       <sphereGeometry args={[0.90, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#E6E3DC"
-        metalness={0.96}
-        roughness={0.11}
+        color="#F5F3ED"
+        metalness={0.92}
+        roughness={0.08}
         clearcoat={1.0}
-        clearcoatRoughness={0.06}
+        clearcoatRoughness={0.03}
         reflectivity={1.0}
-        envMapIntensity={2.4}
+        envMapIntensity={3.2}
         emissive="#C5A875"
-        emissiveIntensity={0.03}
+        emissiveIntensity={0.04}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>
