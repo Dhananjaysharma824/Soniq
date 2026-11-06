@@ -97,14 +97,14 @@ interface MusicState {
 }
 
 const defaultSettings: VisualizerSettings = {
-  bassSensitivity: 1.25,
-  midSensitivity: 1.25,
-  trebleSensitivity: 1.3,
-  beatIntensity: 1.35,
-  particleDensity: 1.1,
-  deformation: 1.3,
-  cameraMotion: 0.75,
-  intensity: 1.2,
+  bassSensitivity: 1.0,
+  midSensitivity: 1.0,
+  trebleSensitivity: 1.0,
+  beatIntensity: 1.0,
+  particleDensity: 1.0,
+  deformation: 0.85,
+  cameraMotion: 0.5,
+  intensity: 1.0,
   quality: 'high',
   reducedMotion: false,
 }

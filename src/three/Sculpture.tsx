@@ -86,16 +86,16 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 p, vec3 n) {
-           // Organic multi-octave liquid flow
-           float slowFlow = snoise(n * (1.1 + uBass * 0.9) + vec3(uTime * 0.18, uTime * 0.12, uTime * 0.22));
-           float fastRipples = snoise(n * 2.8 - vec3(uTime * 0.35) + vec3(uMid * 1.8));
-           float microTwinkle = snoise(n * 6.5 + uTime * 0.6) * (uTreble * 0.08);
+           // Smooth liquid-metal surface flow
+           float slowFlow = snoise(n * 1.3 + vec3(uTime * 0.14, uTime * 0.10, uTime * 0.16)) * (0.05 + uBass * 0.04);
+           float ripples = snoise(n * 2.6 - vec3(uTime * 0.25) + vec3(uMid * 0.8)) * (0.03 + uMid * 0.03);
+           float microTwinkle = snoise(n * 5.0 + uTime * 0.4) * (uTreble * 0.02);
 
-           // Acoustic standing harmonic wave traveling along surface
-           float standingWave = sin(dot(n, vec3(0.0, 1.0, 0.0)) * 6.0 - uTime * 3.5 + uBeat * 3.1415) * (uBass * 0.22 + uBeat * 0.16);
+           // Gentle acoustic surface ripple (controlled, never stretches into wings)
+           float surfaceRipple = sin(dot(n, vec3(0.0, 1.0, 0.0)) * 4.0 - uTime * 2.2) * (uBass * 0.04 + uBeat * 0.03);
 
-           float totalDisp = (slowFlow * 0.22 + fastRipples * 0.12 + standingWave + microTwinkle) * uDeform;
-           return totalDisp;
+           float rawDisp = (slowFlow + ripples + surfaceRipple + microTwinkle) * uDeform;
+           return clamp(rawDisp, -0.15, 0.15);
          }
         `,
       )
@@ -142,24 +142,24 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     uniforms.uMid.value = mid
     uniforms.uTreble.value = treble
     uniforms.uBeat.value = beat
-    uniforms.uDeform.value = s.deformation * 1.3
+    uniforms.uDeform.value = s.deformation * 0.75
 
     if (mesh.current) {
-      // Subtle continuous organic rotation with musical tilt
-      mesh.current.rotation.y = t * 0.08 * motion + mid * 0.12
-      mesh.current.rotation.x = Math.sin(t * 0.1) * 0.14 * motion + bass * 0.08
-      mesh.current.rotation.z = Math.cos(t * 0.08) * 0.08 * motion + beat * 0.06
+      // Gentle, luxurious continuous rotation
+      mesh.current.rotation.y = t * 0.06 * motion + mid * 0.05
+      mesh.current.rotation.x = Math.sin(t * 0.08) * 0.08 * motion + bass * 0.04
+      mesh.current.rotation.z = Math.cos(t * 0.06) * 0.05 * motion + beat * 0.03
 
-      // Expressive rhythmic scale pulse
-      const pulse = 1 + bass * 0.15 + beat * 0.12
+      // Controlled organic breathing pulse (never explodes)
+      const pulse = 1.0 + bass * 0.04 + beat * 0.03
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Dynamic champagne emissive pulse on transients
-      const glow = 0.04 + beat * 0.85 + bass * 0.25 + treble * 0.12
+      // Subtle, refined metallic champagne sheen
+      const glow = 0.02 + beat * 0.12 + bass * 0.05
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.06, 0.12 - beat * 0.06)
+      material.current.roughness = 0.10
     }
   })
 
@@ -168,18 +168,18 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
   return (
     <mesh ref={mesh} position={position}>
-      <sphereGeometry args={[1.2, segments, segments]} />
+      <sphereGeometry args={[0.95, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#DDD8D0"
-        metalness={0.96}
-        roughness={0.09}
+        color="#E4E0D9"
+        metalness={0.98}
+        roughness={0.10}
         clearcoat={1.0}
-        clearcoatRoughness={0.05}
+        clearcoatRoughness={0.06}
         reflectivity={1.0}
-        envMapIntensity={2.5}
+        envMapIntensity={2.2}
         emissive="#C5A875"
-        emissiveIntensity={0.04}
+        emissiveIntensity={0.02}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>

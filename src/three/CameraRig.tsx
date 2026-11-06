@@ -16,10 +16,10 @@ export default function CameraRig() {
     const bass = (a?.bass ?? 0) * settings.bassSensitivity
     const t = state.clock.elapsedTime
 
-    // Smooth orbital parallax with audio punch
-    const targetX = pointer.x * 0.45 * motion + Math.sin(t * 0.16) * 0.08 * motion
-    const targetY = pointer.y * 0.28 * motion + Math.cos(t * 0.14) * 0.06 * motion
-    const targetZ = base.current.z - bass * 0.42 * motion - beat * 0.2 * motion
+    // Smooth orbital parallax with subtle audio depth
+    const targetX = pointer.x * 0.35 * motion + Math.sin(t * 0.12) * 0.05 * motion
+    const targetY = pointer.y * 0.22 * motion + Math.cos(t * 0.10) * 0.04 * motion
+    const targetZ = base.current.z - bass * 0.12 * motion - beat * 0.06 * motion
 
     camera.position.x += (targetX - camera.position.x) * 0.045
     camera.position.y += (targetY - camera.position.y) * 0.045

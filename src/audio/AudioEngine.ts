@@ -243,19 +243,19 @@ export class AudioEngine {
     const rawMid = this.averageRange(this.spectrumData, bassEnd, midEnd)
     const rawTreble = this.averageRange(this.spectrumData, midEnd, trebleEnd)
 
-    const perceivedBass = Math.min(1.0, Math.pow(rawBass * 2.2, 0.85))
-    const perceivedMid = Math.min(1.0, Math.pow(rawMid * 2.6, 0.85))
-    const perceivedTreble = Math.min(1.0, Math.pow(rawTreble * 3.2, 0.9))
+    const perceivedBass = Math.min(1.0, rawBass * 1.35)
+    const perceivedMid = Math.min(1.0, rawMid * 1.45)
+    const perceivedTreble = Math.min(1.0, rawTreble * 1.65)
 
     let sumSq = 0
     for (let i = 0; i < this.waveformData.length; i++) {
       const v = this.waveformData[i]
       sumSq += v * v
     }
-    const rawAmp = Math.min(1.0, Math.sqrt(sumSq / this.waveformData.length) * 1.8)
+    const rawAmp = Math.min(1.0, Math.sqrt(sumSq / this.waveformData.length) * 1.3)
 
-    const attack = 0.38
-    const decay = 0.14
+    const attack = 0.22
+    const decay = 0.08
     this.sBass += (perceivedBass - this.sBass) * (perceivedBass > this.sBass ? attack : decay)
     this.sMid += (perceivedMid - this.sMid) * (perceivedMid > this.sMid ? attack : decay)
     this.sTreble += (perceivedTreble - this.sTreble) * (perceivedTreble > this.sTreble ? attack : decay)
