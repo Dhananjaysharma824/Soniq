@@ -64,7 +64,7 @@ async function apiFetch<T>(path: string, params: Record<string, string | number 
   if (path === '/search' || path === '/popular') {
     try {
       const rawTerm = String(params.q || (path === '/popular' ? 'Bollywood Top Hits' : ''))
-      const term = rawTerm.replace(/\s+by\s+/gi, ' ').trim()
+      const term = rawTerm.replace(/\s+(by|bt)\s+/gi, ' ').trim()
       if (term) {
         const offsetParam = params.offset && Number(params.offset) > 0 ? `&offset=${params.offset}` : ''
         const directUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&country=IN&limit=${params.limit || 40}${offsetParam}`

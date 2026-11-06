@@ -41,10 +41,10 @@ export async function searchFullSongs(query, limit = 40, offset = 0) {
   const cleanQ = query.trim()
   const p = Math.floor(offset / limit) + 1
 
-  // Generate candidate queries (e.g. "aankhein by navjot ahuja" -> also try "aankhein navjot ahuja")
+  // Generate candidate queries (e.g. "aankhein by navjot ahuja" or "aankhein bt navjot ahuja" -> also try "aankhein navjot ahuja")
   const queriesToTry = [cleanQ]
-  if (/\s+by\s+/i.test(cleanQ)) {
-    queriesToTry.push(cleanQ.replace(/\s+by\s+/gi, ' ').replace(/\s+/g, ' ').trim())
+  if (/\s+(by|bt)\s+/i.test(cleanQ)) {
+    queriesToTry.push(cleanQ.replace(/\s+(by|bt)\s+/gi, ' ').replace(/\s+/g, ' ').trim())
   }
 
   for (const q of queriesToTry) {

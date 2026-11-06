@@ -11,7 +11,7 @@ function getClientId() {
 // Fallback search using Meld universal music metadata engine
 async function meldSearch(query, limit = 50, offset = 0) {
   try {
-    const cleanTerm = (query || '').replace(/\s+by\s+/gi, ' ').trim()
+    const cleanTerm = (query || '').replace(/\s+(by|bt)\s+/gi, ' ').trim()
     const url = new URL('https://itunes.apple.com/search')
     url.searchParams.set('term', cleanTerm)
     url.searchParams.set('entity', 'song')

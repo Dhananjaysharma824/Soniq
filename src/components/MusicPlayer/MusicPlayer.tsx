@@ -383,7 +383,7 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             onClick={() => navigate('/experience')}
             className="flex min-w-0 flex-1 items-center gap-3 cursor-pointer"
           >
-            <div className="relative h-13 w-13 sm:h-14 sm:w-14 flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.1] shadow-lg">
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 min-w-[48px] min-h-[48px] max-w-[56px] max-h-[56px] flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.1] shadow-lg">
               {track?.artwork ? (
                 <img src={track.artwork} alt="" className="h-full w-full object-cover" />
               ) : (
