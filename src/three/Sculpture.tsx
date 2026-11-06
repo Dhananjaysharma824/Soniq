@@ -9,7 +9,6 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const material = useRef<THREE.MeshPhysicalMaterial>(null)
   const settings = useStore((s) => s.settings)
 
-  const phase = useRef(0)
   const smoothedBass = useRef(0)
   const smoothedBeat = useRef(0)
   const smoothedMid = useRef(0)
@@ -17,19 +16,19 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
   const uniforms = useMemo(
     () => ({
-      uPhase: { value: 0 },
+      uTime: { value: 0 },
       uBass: { value: 0 },
       uMid: { value: 0 },
       uTreble: { value: 0 },
       uBeat: { value: 0 },
-      uDeform: { value: 1.1 },
+      uDeform: { value: 1.0 },
     }),
     [],
   )
 
   const onBeforeCompile = useMemo(
     () => (shader: THREE.WebGLProgramParametersWithUniforms) => {
-      shader.uniforms.uPhase = uniforms.uPhase
+      shader.uniforms.uTime = uniforms.uTime
       shader.uniforms.uBass = uniforms.uBass
       shader.uniforms.uMid = uniforms.uMid
       shader.uniforms.uTreble = uniforms.uTreble
@@ -39,7 +38,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
         `#include <common>
-         uniform float uPhase;
+         uniform float uTime;
          uniform float uBass;
          uniform float uMid;
          uniform float uTreble;
@@ -91,34 +90,17 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
            return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
          }
 
-         vec3 getOrthogonal(vec3 v) {
-           float x = abs(v.x);
-           float y = abs(v.y);
-           float z = abs(v.z);
-           vec3 other = x < y ? (x < z ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0)) : (y < z ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0));
-           return normalize(cross(v, other));
-         }
+         float getDisplacement(vec3 p, vec3 n) {
+           // Smooth liquid-metal surface flow
+           float slowFlow = snoise(n * 1.4 + vec3(uTime * 0.14, uTime * 0.10, uTime * 0.16)) * (0.05 + uBass * 0.10);
+           float ripples = snoise(n * 2.8 - vec3(uTime * 0.22) + vec3(uMid * 0.6)) * (0.03 + uMid * 0.06);
+           float microTwinkle = snoise(n * 5.0 + uTime * 0.35) * (uTreble * 0.03);
 
-         float getDisplacement(vec3 n) {
-           // Flowing sculptural harmonic waves (luxury organic fluid metamaterial)
-           float w1 = sin(n.x * 2.6 + uPhase * 0.35) * cos(n.y * 2.6) * sin(n.z * 2.6 + uPhase * 0.25);
-           float w2 = snoise(n * 2.4 + vec3(uPhase * 0.12));
-           float fluid = (w1 * 0.55 + w2 * 0.45);
+           // Acoustic wave pulses that breathe with the rhythm
+           float surfaceRipple = sin(dot(n, vec3(0.0, 1.0, 0.0)) * 4.5 - uTime * 2.0) * (uBass * 0.06 + uBeat * 0.08);
 
-           // Broad, elegant fluid wave crests (smooth like molten platinum)
-           float wave = sin(fluid * 3.14159) * 0.5 + 0.5;
-           wave = pow(wave, 1.4);
-
-           // Secondary harmonic detail for ripples
-           float n3 = snoise(n * 5.5);
-           float ripple = pow(max(0.0, n3), 1.8) * 0.25;
-
-           // Dynamic music pulse: expands on beat and bass with zero latency
-           float pulsePower = uBass * 0.32 + uBeat * 0.42;
-           float midPower = uMid * 0.10 + uTreble * 0.05;
-
-           float totalDisp = (wave * pulsePower + ripple * midPower) * uDeform;
-           return clamp(totalDisp, -0.05, 0.50);
+           float rawDisp = (slowFlow + ripples + surfaceRipple + microTwinkle) * uDeform;
+           return clamp(rawDisp, -0.22, 0.22);
          }
         `,
       )
@@ -126,23 +108,22 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-         float d = getDisplacement(normal);
+         float d = getDisplacement(position, normal);
          transformed += normal * d;
 
-         // Singularity-free orthonormal tangent frame
-         float eps = 0.015;
-         vec3 t = getOrthogonal(normal);
-         vec3 b = cross(normal, t);
-         vec3 p1 = position + t * eps;
-         vec3 p2 = position + b * eps;
-         float d1 = getDisplacement(normalize(p1));
-         float d2 = getDisplacement(normalize(p2));
-         vec3 v0 = position + normal * d;
-         vec3 v1 = (p1 + normalize(p1) * d1) - v0;
-         vec3 v2 = (p2 + normalize(p2) * d2) - v0;
+         // Displaced normal for glistening reflections
+         float eps = 0.02;
+         vec3 tangent = normalize(cross(normal, vec3(0.0, 1.0, 0.0) + vec3(0.001)));
+         vec3 bitangent = cross(normal, tangent);
+         vec3 p1 = position + tangent * eps;
+         vec3 p2 = position + bitangent * eps;
+         float d1 = getDisplacement(p1, normalize(p1));
+         float d2 = getDisplacement(p2, normalize(p2));
+         vec3 v1 = (p1 + normalize(p1) * d1) - transformed;
+         vec3 v2 = (p2 + normalize(p2) * d2) - transformed;
          vec3 displacedNormal = normalize(cross(v1, v2));
          #ifdef USE_NORMAL
-           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.75));
+           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.65));
          #endif
         `,
       )
@@ -150,20 +131,18 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     [uniforms],
   )
 
-  useFrame((_state, delta) => {
-    // Direct, real-time access to audio analysis (zero React state delay)
+  useFrame((state, delta) => {
     const a = audioEngine.analysis
     const s = settings
+    const t = state.clock.elapsedTime
     const motion = s.reducedMotion ? 0 : 1
 
-    const rawBass = (a.bass ?? 0) * s.bassSensitivity
-    const rawBeat = (a.beatStrength ?? 0) * s.beatIntensity
-    const rawMid = (a.mid ?? 0) * s.midSensitivity
-    const rawTreble = (a.treble ?? 0) * s.trebleSensitivity
+    const rawBass = (a?.bass ?? 0) * s.bassSensitivity
+    const rawMid = (a?.mid ?? 0) * s.midSensitivity
+    const rawTreble = (a?.treble ?? 0) * s.trebleSensitivity
+    const rawBeat = (a?.beatStrength ?? 0) * s.beatIntensity
 
-    // Asymmetric musical damping:
-    // Attack: Fast & responsive (16.0 ~ 30ms) to feel synchronized on the beat
-    // Decay: Silky smooth liquid release (6.0 ~ 150ms) to eliminate all jerks / popping
+    // Silky smooth musical lerp (fast attack, smooth release)
     const beatLerp = rawBeat > smoothedBeat.current ? 16.0 : 6.0
     smoothedBeat.current += (rawBeat - smoothedBeat.current) * Math.min(1.0, delta * beatLerp)
 
@@ -173,35 +152,34 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     smoothedMid.current += (rawMid - smoothedMid.current) * Math.min(1.0, delta * 8.0)
     smoothedTreble.current += (rawTreble - smoothedTreble.current) * Math.min(1.0, delta * 8.0)
 
-    const beat = smoothedBeat.current
     const bass = smoothedBass.current
     const mid = smoothedMid.current
     const treble = smoothedTreble.current
+    const beat = smoothedBeat.current
 
-    phase.current += delta * motion
-
-    uniforms.uPhase.value = phase.current
+    uniforms.uTime.value = t
     uniforms.uBass.value = bass
     uniforms.uMid.value = mid
     uniforms.uTreble.value = treble
     uniforms.uBeat.value = beat
-    uniforms.uDeform.value = s.deformation
+    uniforms.uDeform.value = s.deformation * 0.85
 
     if (mesh.current) {
-      // Smooth, majestic studio spin
-      mesh.current.rotation.y += delta * 0.16 * motion
-      mesh.current.rotation.x = Math.sin(phase.current * 0.35) * 0.05
+      // Luxurious showroom rotation
+      mesh.current.rotation.y = t * 0.06 * motion + mid * 0.04
+      mesh.current.rotation.x = Math.sin(t * 0.08) * 0.07 * motion + bass * 0.03
+      mesh.current.rotation.z = Math.cos(t * 0.06) * 0.04 * motion + beat * 0.02
 
-      // Dynamic scale pulse on the beat
-      const pulse = 1.0 + beat * 0.12 + bass * 0.06
+      // Crisp musical scale recoil
+      const pulse = 1.0 + bass * 0.06 + beat * 0.08
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Warm champagne glow from the creases on beat impact
-      const glow = 0.03 + beat * 0.28 + bass * 0.10
+      // Elegant champagne sheen
+      const glow = 0.02 + beat * 0.18 + bass * 0.06
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.12, 0.20 - beat * 0.06)
+      material.current.roughness = 0.10
     }
   })
 
@@ -210,18 +188,18 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
   return (
     <mesh ref={mesh} position={position}>
-      <sphereGeometry args={[0.90, segments, segments]} />
+      <sphereGeometry args={[0.95, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#EAE6DF"
-        metalness={0.92}
-        roughness={0.16}
+        color="#E4E0D9"
+        metalness={0.98}
+        roughness={0.10}
         clearcoat={1.0}
-        clearcoatRoughness={0.10}
+        clearcoatRoughness={0.06}
         reflectivity={1.0}
-        envMapIntensity={1.4}
+        envMapIntensity={2.2}
         emissive="#C5A875"
-        emissiveIntensity={0.03}
+        emissiveIntensity={0.02}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>

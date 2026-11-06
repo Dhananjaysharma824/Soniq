@@ -56,11 +56,11 @@ export default function ExperienceCanvas() {
           <World id={world} />
           <Sculpture />
           <Particles color={particleColor} />
-          <Environment preset={world === 'ocean' ? 'city' : world === 'dream' ? 'dawn' : 'night'} environmentIntensity={0.25} />
+          <Environment preset={world === 'ocean' ? 'city' : world === 'dream' ? 'dawn' : 'night'} environmentIntensity={0.35} />
         </Suspense>
         {showPost && (
           <EffectComposer multisampling={0}>
-            <Bloom intensity={0.25} luminanceThreshold={0.85} luminanceSmoothing={0.20} mipmapBlur />
+            <Bloom intensity={0.35} luminanceThreshold={0.55} luminanceSmoothing={0.25} mipmapBlur />
             <ChromaticAberration offset={new THREE.Vector2(0.0006, 0.0006)} radialModulation={false} modulationOffset={0} blendFunction={BlendFunction.NORMAL} />
             <Noise opacity={0.025} blendFunction={BlendFunction.SOFT_LIGHT} />
             <Vignette eskil={false} offset={0.15} darkness={0.65} />
