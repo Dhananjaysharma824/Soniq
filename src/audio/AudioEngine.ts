@@ -206,6 +206,10 @@ export class AudioEngine {
 
   loadSource(src: string): void {
     if (!this.audioElement) return
+    // Always preserve anonymous CORS so Web Audio can analyze audio streams from CDNs
+    if (this.audioElement.crossOrigin !== 'anonymous') {
+      this.audioElement.crossOrigin = 'anonymous'
+    }
     this.audioElement.src = src
     this.audioElement.load()
   }

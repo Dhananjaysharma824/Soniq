@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useStore, type Track } from '@/store/useStore'
 import { audioEngine } from '@/audio/AudioEngine'
@@ -13,6 +13,7 @@ function fmt(s: number) {
 
 export default function MusicPlayer({ compact = false }: { compact?: boolean }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [showQueue, setShowQueue] = useState(false)
   const [isSeeking, setIsSeeking] = useState(false)
@@ -167,6 +168,16 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                   </svg>
                 </div>
               )}
+              {isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+                  <div className="flex items-end gap-0.5 h-3.5">
+                    <span className="w-0.5 h-full bg-champagne rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-0.5 h-2.5 bg-champagne rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-0.5 h-3.5 bg-champagne rounded-full animate-bounce [animation-delay:300ms]" />
+                    <span className="w-0.5 h-2 bg-champagne rounded-full animate-bounce [animation-delay:450ms]" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="min-w-0 flex-1">
@@ -183,6 +194,16 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                     <svg width="12" height="12" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
+                  </button>
+                )}
+                {!isExperience && track && (
+                  <button
+                    onClick={() => navigate('/experience')}
+                    className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-2 py-0.5 text-[10px] font-mono text-champagne hover:bg-champagne hover:text-bg-primary transition-all shadow-sm flex-shrink-0"
+                    title="View live 3D sculpture reacting to this track"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-champagne animate-pulse" />
+                    <span>3D View</span>
                   </button>
                 )}
               </div>

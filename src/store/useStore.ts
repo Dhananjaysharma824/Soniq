@@ -205,18 +205,7 @@ export const useStore = create<MusicState>((set, get) => ({
       } catch (err: unknown) {
         const error = err as Error
         console.warn('Playback error or blocked by autoplay:', error)
-        // Check if CORS error occurred on crossOrigin = anonymous
-        if (el.crossOrigin && (error.name === 'NotSupportedError' || el.error)) {
-          // Retry without crossOrigin restriction as fallback audio playback
-          el.removeAttribute('crossorigin')
-          el.src = track.src
-          el.load()
-          el.play()
-            .then(() => set({ isBuffering: false, isPlaying: true, playbackError: null }))
-            .catch(() => set({ isBuffering: false, playbackError: 'Click Play button to activate sound.' }))
-        } else {
-          set({ isBuffering: false, playbackError: 'Click Play button to activate sound.' })
-        }
+        set({ isBuffering: false, playbackError: 'Click Play button to activate sound.' })
       }
     }
 

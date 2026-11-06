@@ -83,6 +83,19 @@ export default function Navbar() {
       <div className="flex items-center gap-3">
         {isExperience && (
           <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-quick-search'))}
+            className="flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all"
+            title="Search and play songs in 3D"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <span>Search</span>
+          </button>
+        )}
+        {isExperience && (
+          <button
             onClick={() => document.documentElement.requestFullscreen?.()}
             className="hidden md:block font-sans text-[11px] font-medium tracking-wide text-text-secondary transition-colors hover:text-text-primary"
           >

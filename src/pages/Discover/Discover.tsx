@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import MusicPlayer from '@/components/MusicPlayer/MusicPlayer'
@@ -62,6 +63,7 @@ function fmtTime(s: number) {
 }
 
 export default function Discover() {
+  const navigate = useNavigate()
   const queue = useStore((s) => s.queue)
   const currentIndex = useStore((s) => s.currentIndex)
   const isPlaying = useStore((s) => s.isPlaying)
@@ -385,14 +387,24 @@ export default function Discover() {
 
                     {/* Metadata */}
                     <div className="min-w-0 flex-1">
-                      <div
-                        onClick={() => handlePlay(t)}
-                        className={clsx(
-                          'cursor-pointer truncate font-display text-sm font-medium transition-colors',
-                          isCurrent ? 'text-champagne font-semibold' : 'text-text-primary hover:text-champagne',
+                      <div className="flex items-center gap-2">
+                        <div
+                          onClick={() => handlePlay(t)}
+                          className={clsx(
+                            'cursor-pointer truncate font-display text-sm font-medium transition-colors',
+                            isCurrent ? 'text-champagne font-semibold' : 'text-text-primary hover:text-champagne',
+                          )}
+                        >
+                          {t.title}
+                        </div>
+                        {isCurrentPlaying && (
+                          <div className="flex items-end gap-0.5 h-3 flex-shrink-0" title="Now playing live">
+                            <span className="w-0.5 h-full bg-champagne rounded-full animate-bounce [animation-delay:0ms]" />
+                            <span className="w-0.5 h-2 bg-champagne rounded-full animate-bounce [animation-delay:150ms]" />
+                            <span className="w-0.5 h-3 bg-champagne rounded-full animate-bounce [animation-delay:300ms]" />
+                            <span className="w-0.5 h-1.5 bg-champagne rounded-full animate-bounce [animation-delay:450ms]" />
+                          </div>
                         )}
-                      >
-                        {t.title}
                       </div>
                       <div className="truncate text-xs text-text-secondary mt-0.5">
                         {t.artist}
@@ -410,6 +422,18 @@ export default function Discover() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        handlePlay(t)
+                        navigate('/experience')
+                      }}
+                      title="Play and view in 3D audio-reactive world"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-2.5 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all shadow-sm"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-champagne animate-pulse" />
+                      <span>{isCurrent ? '3D View' : 'Play in 3D'}</span>
+                    </button>
+
                     <button
                       onClick={() => addToQueue(t)}
                       title="Add to queue"
