@@ -283,23 +283,23 @@ export class AudioEngine {
     // Continuous transient pulse detection:
     // Tracks instantaneous kick energy above smooth baseline (zero-lag physical audio sync)
     this.fastKick = normKick
-    this.slowKick += (normKick - this.slowKick) * 0.08
-    const kickSurge = Math.max(0, this.fastKick - this.slowKick * 1.08)
-    const kickPunch = Math.min(1.0, kickSurge * 3.2)
+    this.slowKick += (normKick - this.slowKick) * 0.09
+    const kickSurge = Math.max(0, this.fastKick - this.slowKick * 1.05)
+    const kickPunch = Math.min(1.0, kickSurge * 3.5)
 
     // Mid transient pulse (snare, claps, vocal attacks)
-    this.slowMid += (normMid - this.slowMid) * 0.08
-    const midSurge = Math.max(0, normMid - this.slowMid * 1.12)
-    const midPunch = Math.min(1.0, midSurge * 2.0)
+    this.slowMid += (normMid - this.slowMid) * 0.09
+    const midSurge = Math.max(0, normMid - this.slowMid * 1.10)
+    const midPunch = Math.min(1.0, midSurge * 2.2)
 
     // Dynamic, continuous beat punch directly locked to the audio peaks
     const instantPunch = Math.max(kickPunch, midPunch * 0.6)
 
-    // Smooth envelope: instantaneous punch rise, fast decay
+    // Smooth envelope: instantaneous punch rise, fast rhythmic snap decay
     if (instantPunch > this.analysis.beatStrength) {
       this.analysis.beatStrength = instantPunch
     } else {
-      this.analysis.beatStrength = Math.max(0, this.analysis.beatStrength * 0.85)
+      this.analysis.beatStrength = Math.max(0, this.analysis.beatStrength * 0.78)
     }
 
     const now = performance.now()

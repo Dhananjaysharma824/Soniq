@@ -99,22 +99,20 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 n) {
-           // 10 to 14 distinct standing wave spikes distributed evenly across 3D sphere
-           // Coordinates are fixed to the sphere body (never swimming or vibrating!)
+           // 10 to 14 distinct standing wave spikes distributed across 3D sphere
            float n1 = snoise(n * 3.4);
-           // Sharpen into distinct protruding peaks (matching user drawing)
            float spikes = pow(max(0.0, n1), 2.2);
 
-           // Harmonic mid-frequency detail
-           float n2 = snoise(n * 6.8);
-           float midDetail = pow(max(0.0, n2), 1.8) * 0.4;
+           // Rhythmic audio drive: waves ONLY shoot out on the kick drum & bass hits!
+           // In between beats, punch drops near 0 so the sphere is smooth and clean
+           float punch = pow(uBeat, 1.4) * 0.52 + pow(uBass, 2.6) * 0.28;
 
-           // Rhythmic audio drive: peaks erupt outward with kicks and bass
-           float spikeSurge = spikes * (0.04 + uBass * 0.40 + uBeat * 0.45);
-           float midSurge = midDetail * (0.02 + uMid * 0.18);
+           // Subtle musical ripple on mids
+           float midRipple = snoise(n * 6.5) * 0.5 + 0.5;
+           float midDetail = pow(midRipple, 2.0) * (uMid * 0.08);
 
-           float totalDisp = (spikeSurge + midSurge) * uDeform;
-           return clamp(totalDisp, 0.0, 0.65);
+           float totalDisp = (spikes * punch + midDetail) * uDeform;
+           return clamp(totalDisp, 0.0, 0.60);
          }
         `,
       )
@@ -138,7 +136,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          vec3 v2 = (p2 + normalize(p2) * d2) - v0;
          vec3 displacedNormal = normalize(cross(v1, v2));
          #ifdef USE_NORMAL
-           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.80));
+           vNormal = normalize(normalMatrix * mix(normal, displacedNormal, 0.75));
          #endif
         `,
       )
@@ -168,19 +166,19 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
     if (mesh.current) {
       // Smooth, majestic studio spin
-      mesh.current.rotation.y += delta * 0.22 * motion
-      mesh.current.rotation.x = Math.sin(phase.current * 0.4) * 0.06
+      mesh.current.rotation.y += delta * 0.20 * motion
+      mesh.current.rotation.x = Math.sin(phase.current * 0.4) * 0.05
 
       // Punchy kick drum scale expansion
-      const pulse = 1.0 + beat * 0.18 + bass * 0.08
+      const pulse = 1.0 + beat * 0.16 + bass * 0.06
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Liquid champagne flare on beat impact
-      const glow = 0.04 + beat * 0.50 + bass * 0.18
+      // Gentle champagne sheen on beat impact (never blowing out)
+      const glow = 0.02 + beat * 0.25 + bass * 0.08
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.04, 0.10 - beat * 0.06)
+      material.current.roughness = Math.max(0.18, 0.26 - beat * 0.08)
     }
   })
 
@@ -192,15 +190,15 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       <sphereGeometry args={[0.90, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#F5F3ED"
-        metalness={0.92}
-        roughness={0.08}
-        clearcoat={1.0}
-        clearcoatRoughness={0.03}
-        reflectivity={1.0}
-        envMapIntensity={3.2}
+        color="#F2EFE9"
+        metalness={0.88}
+        roughness={0.22}
+        clearcoat={0.5}
+        clearcoatRoughness={0.20}
+        reflectivity={0.8}
+        envMapIntensity={1.0}
         emissive="#C5A875"
-        emissiveIntensity={0.04}
+        emissiveIntensity={0.02}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>
