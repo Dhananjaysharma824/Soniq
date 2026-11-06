@@ -25,13 +25,20 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // Clean migration: replace broken soundhelix tracks if present or initialize queue
-    const hasBroken = queue.some((t) => t.src.includes('soundhelix.com'))
-    if (queue.length === 0 || hasBroken) {
-      setTracks(demoTracks)
-      useStore.setState({ queue: demoTracks, currentIndex: 0 })
+    // Purge any legacy demo tracks or broken soundhelix tracks from queue
+    const demoIds = new Set(demoTracks.map((t) => t.id))
+    const currentQueue = useStore.getState().queue
+    const cleanQueue = currentQueue.filter(
+      (t) => !demoIds.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
+    )
+    if (cleanQueue.length !== currentQueue.length) {
+      useStore.setState({
+        queue: cleanQueue,
+        currentIndex: cleanQueue.length > 0 ? Math.min(useStore.getState().currentIndex, cleanQueue.length - 1) : -1,
+        isPlaying: cleanQueue.length > 0 ? useStore.getState().isPlaying : false,
+      })
     }
-  }, [queue, setTracks])
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.quality = settings.quality

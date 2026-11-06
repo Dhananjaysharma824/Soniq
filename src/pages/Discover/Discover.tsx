@@ -86,11 +86,14 @@ export default function Discover() {
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
   const [, startTransition] = useTransition()
 
-  // Base pool of local curated tracks (Bollywood & Electronic)
+  // Pool of previously played/cached real tracks
   const localCatalog = useMemo(() => {
     const map = new Map<string, Track>()
-    demoTracks.forEach((t) => map.set(t.id, t))
-    storeTracks.forEach((t) => map.set(t.id, t))
+    storeTracks.forEach((t) => {
+      if (!t.id.startsWith('track-kal') && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer')) {
+        map.set(t.id, t)
+      }
+    })
     return Array.from(map.values())
   }, [storeTracks])
 

@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { MutableRefObject } from 'react'
 import { audioEngine, type AudioAnalysis } from '@/audio/AudioEngine'
+import { demoTracks } from '@/data/demoTracks'
+
+const DEMO_IDS = new Set(demoTracks.map((t) => t.id))
 import {
   apiCreatePlaylist,
   apiUpdatePlaylist,
@@ -135,7 +138,13 @@ function savePrefs(partial: Record<string, unknown>) {
 }
 
 const prefs = loadPrefs()
-const initialSavedTracks: Record<string, Track> = prefs.savedTracks ?? {}
+const rawSavedTracks: Record<string, Track> = prefs.savedTracks ?? {}
+const initialSavedTracks: Record<string, Track> = {}
+for (const [k, v] of Object.entries(rawSavedTracks)) {
+  if (!DEMO_IDS.has(k) && !v.src?.includes('soundhelix.com') && !v.src?.includes('wikivky/musicplayer')) {
+    initialSavedTracks[k] = v
+  }
+}
 
 export const useStore = create<MusicState>((set, get) => ({
   tracks: Object.values(initialSavedTracks),
@@ -153,9 +162,7 @@ export const useStore = create<MusicState>((set, get) => ({
   playbackRate: 1,
   recentlyPlayed: prefs.recentlyPlayed ?? [],
   favourites: prefs.favourites ?? [],
-  playlists: prefs.playlists ?? [
-    { id: 'fav-vibes', name: 'Ambient Frequencies', trackIds: ['demo-1', 'demo-4'], createdAt: Date.now() - 86400000 },
-  ],
+  playlists: prefs.playlists ?? [],
   world: (prefs.world as WorldId) ?? 'space',
   settings: { ...defaultSettings, ...(prefs.settings ?? {}) },
   analysisRef: null,
@@ -192,7 +199,6 @@ export const useStore = create<MusicState>((set, get) => ({
 
     return {
       tracks: merged,
-      queue: s.queue.length ? s.queue : merged,
     }
   }),
 
@@ -241,13 +247,17 @@ export const useStore = create<MusicState>((set, get) => ({
 
   playTrackDirect: (track: Track) => {
     const { queue } = get()
-    const idx = queue.findIndex((t) => t.id === track.id)
+    const cleanQueue = queue.filter(
+      (t) => !DEMO_IDS.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
+    )
+    const idx = cleanQueue.findIndex((t) => t.id === track.id)
     if (idx >= 0) {
-      get().playTrack(idx)
+      set({ queue: cleanQueue })
+      get().playTrack(idx, cleanQueue)
     } else {
-      const nextQueue = [track, ...queue]
+      const nextQueue = [...cleanQueue, track]
       set({ queue: nextQueue })
-      get().playTrack(0, nextQueue)
+      get().playTrack(nextQueue.length - 1, nextQueue)
     }
   },
 
@@ -485,22 +495,52 @@ export const useStore = create<MusicState>((set, get) => ({
 
   // Queue actions
   addToQueue: (track) => {
-    set((s) => ({ queue: [...s.queue, track] }))
+    const { queue, currentIndex } = get()
+    const cleanQueue = queue.filter(
+      (t) => !DEMO_IDS.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
+    )
+    if (cleanQueue.some((t) => t.id === track.id)) {
+      set({ queue: cleanQueue })
+      return
+    }
+    const nextQueue = [...cleanQueue, track]
+    set({
+      queue: nextQueue,
+      currentIndex: currentIndex === -1 ? 0 : currentIndex,
+    })
+    get().setTracks([track])
   },
 
   removeFromQueue: (index) => {
-    set((s) => {
-      const q = s.queue.filter((_, i) => i !== index)
-      let nextIndex = s.currentIndex
-      if (index < s.currentIndex) nextIndex--
-      else if (index === s.currentIndex) {
-        if (nextIndex >= q.length) nextIndex = q.length - 1
+    const { queue, currentIndex, isPlaying } = get()
+    const q = queue.filter((_, i) => i !== index)
+    if (q.length === 0) {
+      const el = audioEngine.getAudioElement()
+      el?.pause()
+      set({ queue: [], currentIndex: -1, isPlaying: false, currentTime: 0, duration: 0, playbackError: null })
+      return
+    }
+
+    if (index === currentIndex) {
+      const nextIndex = index >= q.length ? q.length - 1 : index
+      set({ queue: q, currentIndex: nextIndex })
+      if (isPlaying) {
+        get().playTrack(nextIndex, q)
+      } else {
+        const nextTrack = q[nextIndex]
+        set({ duration: nextTrack?.duration || 0, currentTime: 0 })
       }
-      return { queue: q, currentIndex: nextIndex }
-    })
+    } else {
+      const nextIndex = index < currentIndex ? currentIndex - 1 : currentIndex
+      set({ queue: q, currentIndex: nextIndex })
+    }
   },
 
-  clearQueue: () => set({ queue: [], currentIndex: -1, isPlaying: false }),
+  clearQueue: () => {
+    const el = audioEngine.getAudioElement()
+    el?.pause()
+    set({ queue: [], currentIndex: -1, isPlaying: false, currentTime: 0, duration: 0, playbackError: null })
+  },
 }))
 
 // Connect AudioEngine callbacks directly to Store

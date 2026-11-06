@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import clsx from 'clsx'
 import { searchTracks, type JamendoTrack } from '@/services/jamendoApi'
 import { useStore, type Track } from '@/store/useStore'
 import AddToPlaylistModal from '@/components/AddToPlaylistModal'
@@ -29,7 +30,9 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
   const [results, setResults] = useState<Track[]>([])
   const [loading, setLoading] = useState(false)
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
+  const [queuedId, setQueuedId] = useState<string | null>(null)
   const playTrackDirect = useStore((s) => s.playTrackDirect)
+  const addToQueue = useStore((s) => s.addToQueue)
   const currentTrack = useStore((s) => s.queue[s.currentIndex])
   const isPlaying = useStore((s) => s.isPlaying)
   const favourites = useStore((s) => s.favourites)
@@ -168,6 +171,33 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
 
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className="text-[10px] font-mono text-text-secondary/70">{fmtTime(t.duration)}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      addToQueue(t)
+                      setQueuedId(t.id)
+                      setTimeout(() => setQueuedId(null), 1500)
+                    }}
+                    className={clsx(
+                      'p-1.5 rounded-lg transition-all',
+                      queuedId === t.id
+                        ? 'text-champagne bg-champagne/20'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.08]',
+                    )}
+                    title={queuedId === t.id ? 'Added to Queue' : 'Add to Queue'}
+                  >
+                    {queuedId === t.id ? (
+                      <span className="text-[10px] font-mono text-champagne font-medium">✓ Queued</span>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="8" y1="6" x2="21" y2="6" />
+                        <line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="16" y2="18" />
+                        <line x1="19" y1="15" x2="19" y2="21" />
+                        <line x1="16" y1="18" x2="22" y2="18" />
+                      </svg>
+                    )}
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
