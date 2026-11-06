@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import MusicPlayer from '@/components/MusicPlayer/MusicPlayer'
+import AddToPlaylistModal from '@/components/AddToPlaylistModal'
 import { useStore, type Track } from '@/store/useStore'
 import {
   getPopularTracks,
@@ -82,6 +83,7 @@ export default function Discover() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
   const [, startTransition] = useTransition()
 
   // Base pool of local curated tracks (Bollywood & Electronic)
@@ -447,7 +449,18 @@ export default function Discover() {
                     </button>
 
                     <button
-                      onClick={() => toggleFavourite(t.id)}
+                      onClick={() => setPlaylistModalTrack(t)}
+                      title="Add to playlist"
+                      className="rounded-lg p-2 text-text-secondary/70 hover:text-champagne hover:bg-white/[0.05] transition-colors"
+                      aria-label="Add to playlist"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M8 6h13M8 12h13M8 18h7M3 6h.01M3 12h.01M3 18h.01" />
+                      </svg>
+                    </button>
+
+                    <button
+                      onClick={() => toggleFavourite(t.id, t)}
                       title={isFav ? 'Remove from favorites' : 'Add to favorites'}
                       className={clsx(
                         'rounded-lg p-2 transition-colors',
@@ -515,6 +528,12 @@ export default function Discover() {
           )}
         </section>
       </main>
+
+      <AddToPlaylistModal
+        track={playlistModalTrack}
+        isOpen={Boolean(playlistModalTrack)}
+        onClose={() => setPlaylistModalTrack(null)}
+      />
 
       <MusicPlayer />
     </div>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useStore, type Track } from '@/store/useStore'
 import { audioEngine } from '@/audio/AudioEngine'
+import AddToPlaylistModal from '@/components/AddToPlaylistModal'
 
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) return '0:00'
@@ -18,6 +19,7 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
   const [showQueue, setShowQueue] = useState(false)
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekVal, setSeekVal] = useState(0)
+  const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
 
   const queue = useStore((s) => s.queue)
   const currentIndex = useStore((s) => s.currentIndex)
@@ -186,15 +188,26 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                   {track?.title ?? 'No audio loaded'}
                 </span>
                 {track && (
-                  <button
-                    onClick={() => toggleFavourite(track.id)}
-                    className={clsx('transition-colors', isFav ? 'text-champagne' : 'text-text-secondary/50 hover:text-text-primary')}
-                    title="Favorite"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => toggleFavourite(track.id, track)}
+                      className={clsx('transition-colors p-0.5', isFav ? 'text-champagne' : 'text-text-secondary/50 hover:text-text-primary')}
+                      title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setPlaylistModalTrack(track)}
+                      className="text-text-secondary/50 hover:text-champagne transition-colors p-0.5"
+                      title="Add to playlist"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M8 6h13M8 12h13M8 18h7M3 6h.01M3 12h.01M3 18h.01" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
                 {!isExperience && track && (
                   <button
@@ -380,6 +393,12 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
           </div>
         </div>
       </div>
+
+      <AddToPlaylistModal
+        track={playlistModalTrack}
+        isOpen={Boolean(playlistModalTrack)}
+        onClose={() => setPlaylistModalTrack(null)}
+      />
     </>
   )
 }

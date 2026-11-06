@@ -11,12 +11,18 @@ import Library from '@/pages/Library/Library'
 import Profile from '@/pages/Profile/Profile'
 import { useStore } from '@/store/useStore'
 import { demoTracks } from '@/data/demoTracks'
+import { syncUserData } from '@/services/userSync'
 
 export default function App() {
   const location = useLocation()
   const setTracks = useStore((s) => s.setTracks)
   const queue = useStore((s) => s.queue)
   const settings = useStore((s) => s.settings)
+
+  useEffect(() => {
+    // Initial sync of user playlists and favourites if logged in
+    syncUserData().catch(() => {})
+  }, [])
 
   useEffect(() => {
     // Clean migration: replace broken soundhelix tracks if present or initialize queue

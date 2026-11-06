@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import type { MutableRefObject } from 'react'
 import { audioEngine, type AudioAnalysis } from '@/audio/AudioEngine'
+import {
+  apiCreatePlaylist,
+  apiUpdatePlaylist,
+  apiDeletePlaylist,
+  apiToggleFavourite,
+} from '@/services/userSync'
 
 export interface Track {
   id: string
@@ -82,13 +88,13 @@ interface MusicState {
   setPlaybackError: (e: string | null) => void
   setWorld: (w: WorldId) => void
   updateSettings: (s: Partial<VisualizerSettings>) => void
-  toggleFavourite: (id: string) => void
+  toggleFavourite: (id: string, track?: Track) => void
   addToRecentlyPlayed: (id: string) => void
   // Playlists
-  createPlaylist: (name: string) => Playlist
+  createPlaylist: (name: string, description?: string) => Playlist
   renamePlaylist: (id: string, name: string) => void
   deletePlaylist: (id: string) => void
-  addTrackToPlaylist: (playlistId: string, trackId: string) => void
+  addTrackToPlaylist: (playlistId: string, track: Track | string) => void
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => void
   // Queue actions
   addToQueue: (track: Track) => void
@@ -129,9 +135,10 @@ function savePrefs(partial: Record<string, unknown>) {
 }
 
 const prefs = loadPrefs()
+const initialSavedTracks: Record<string, Track> = prefs.savedTracks ?? {}
 
 export const useStore = create<MusicState>((set, get) => ({
-  tracks: [],
+  tracks: Object.values(initialSavedTracks),
   queue: [],
   currentIndex: -1,
   isPlaying: false,
@@ -155,12 +162,19 @@ export const useStore = create<MusicState>((set, get) => ({
   setAnalysisRef: (ref) => set({ analysisRef: ref }),
 
   setTracks: (t) => {
-    // Merge without duplicates
+    // Merge without duplicates & persist into savedTracks
     set((s) => {
       const map = new Map<string, Track>()
       s.tracks.forEach((x) => map.set(x.id, x))
       t.forEach((x) => map.set(x.id, x))
-      return { tracks: Array.from(map.values()) }
+      const merged = Array.from(map.values())
+
+      const saved = { ...(loadPrefs().savedTracks || {}) }
+      merged.forEach((item) => {
+        saved[item.id] = item
+      })
+      savePrefs({ savedTracks: saved })
+      return { tracks: merged }
     })
   },
 
@@ -169,6 +183,13 @@ export const useStore = create<MusicState>((set, get) => ({
     t.forEach((x) => map.set(x.id, x))
     s.tracks.forEach((x) => map.set(x.id, x))
     const merged = Array.from(map.values())
+
+    const saved = { ...(loadPrefs().savedTracks || {}) }
+    merged.forEach((item) => {
+      saved[item.id] = item
+    })
+    savePrefs({ savedTracks: saved })
+
     return {
       tracks: merged,
       queue: s.queue.length ? s.queue : merged,
@@ -357,11 +378,19 @@ export const useStore = create<MusicState>((set, get) => ({
       return { settings: next }
     })
   },
-  toggleFavourite: (id) => {
+  toggleFavourite: (id, track) => {
     set((s) => {
       const fav = s.favourites.includes(id) ? s.favourites.filter((x) => x !== id) : [...s.favourites, id]
-      savePrefs({ favourites: fav })
-      return { favourites: fav }
+      const saved = { ...(loadPrefs().savedTracks || {}) }
+      if (track) {
+        saved[track.id] = track
+      } else {
+        const found = s.tracks.find((t) => t.id === id)
+        if (found) saved[found.id] = found
+      }
+      savePrefs({ favourites: fav, savedTracks: saved })
+      apiToggleFavourite(id).catch(() => {})
+      return { favourites: fav, tracks: Object.values(saved) }
     })
   },
   addToRecentlyPlayed: (id) => {
@@ -373,9 +402,9 @@ export const useStore = create<MusicState>((set, get) => ({
   },
 
   // Playlists
-  createPlaylist: (name: string) => {
+  createPlaylist: (name: string, description = '') => {
     const newPl: Playlist = {
-      id: `pl-${Date.now()}`,
+      id: `pl-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       name: name.trim() || 'Untitled Playlist',
       trackIds: [],
       createdAt: Date.now(),
@@ -385,13 +414,16 @@ export const useStore = create<MusicState>((set, get) => ({
       savePrefs({ playlists: next })
       return { playlists: next }
     })
+    apiCreatePlaylist(name, description).catch(() => {})
     return newPl
   },
 
   renamePlaylist: (id, name) => {
     set((s) => {
-      const next = s.playlists.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p))
+      const trimmed = name.trim()
+      const next = s.playlists.map((p) => (p.id === id ? { ...p, name: trimmed || p.name } : p))
       savePrefs({ playlists: next })
+      apiUpdatePlaylist(id, { name: trimmed }).catch(() => {})
       return { playlists: next }
     })
   },
@@ -400,19 +432,35 @@ export const useStore = create<MusicState>((set, get) => ({
     set((s) => {
       const next = s.playlists.filter((p) => p.id !== id)
       savePrefs({ playlists: next })
+      apiDeletePlaylist(id).catch(() => {})
       return { playlists: next }
     })
   },
 
-  addTrackToPlaylist: (playlistId, trackId) => {
+  addTrackToPlaylist: (playlistId, track) => {
+    const trackId = typeof track === 'string' ? track : track.id
     set((s) => {
+      const saved = { ...(loadPrefs().savedTracks || {}) }
+      if (typeof track !== 'string') {
+        saved[track.id] = track
+      } else {
+        const found = s.tracks.find((t) => t.id === track)
+        if (found) saved[found.id] = found
+      }
       const next = s.playlists.map((p) => {
         if (p.id !== playlistId) return p
         if (p.trackIds.includes(trackId)) return p
         return { ...p, trackIds: [...p.trackIds, trackId] }
       })
-      savePrefs({ playlists: next })
-      return { playlists: next }
+      savePrefs({ playlists: next, savedTracks: saved })
+
+      const updatedPl = next.find((p) => p.id === playlistId)
+      if (updatedPl) {
+        const currentTracks = updatedPl.trackIds.map((id) => saved[id]).filter(Boolean) as Track[]
+        apiUpdatePlaylist(playlistId, { tracks: currentTracks }).catch(() => {})
+      }
+
+      return { playlists: next, tracks: Object.values(saved) }
     })
   },
 
@@ -423,6 +471,14 @@ export const useStore = create<MusicState>((set, get) => ({
         return { ...p, trackIds: p.trackIds.filter((t) => t !== trackId) }
       })
       savePrefs({ playlists: next })
+
+      const updatedPl = next.find((p) => p.id === playlistId)
+      if (updatedPl) {
+        const saved = loadPrefs().savedTracks || {}
+        const currentTracks = updatedPl.trackIds.map((id) => saved[id]).filter(Boolean) as Track[]
+        apiUpdatePlaylist(playlistId, { tracks: currentTracks }).catch(() => {})
+      }
+
       return { playlists: next }
     })
   },

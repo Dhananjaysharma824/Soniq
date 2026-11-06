@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { searchTracks, type JamendoTrack } from '@/services/jamendoApi'
 import { useStore, type Track } from '@/store/useStore'
+import AddToPlaylistModal from '@/components/AddToPlaylistModal'
 
 function mapTrack(jt: JamendoTrack): Track {
   return {
@@ -27,9 +28,12 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Track[]>([])
   const [loading, setLoading] = useState(false)
+  const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
   const playTrackDirect = useStore((s) => s.playTrackDirect)
   const currentTrack = useStore((s) => s.queue[s.currentIndex])
   const isPlaying = useStore((s) => s.isPlaying)
+  const favourites = useStore((s) => s.favourites)
+  const toggleFavourite = useStore((s) => s.toggleFavourite)
 
   useEffect(() => {
     if (!isOpen) return
@@ -162,9 +166,41 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className="text-[10px] font-mono text-text-secondary/70">{fmtTime(t.duration)}</span>
-                  <button className="rounded-full bg-champagne/15 border border-champagne/40 px-2.5 py-1 text-[10px] font-mono text-champagne hover:bg-champagne hover:text-bg-primary transition-all">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleFavourite(t.id, t)
+                    }}
+                    className={`p-1.5 rounded-lg hover:bg-white/[0.08] transition-colors ${
+                      favourites.includes(t.id) ? 'text-champagne' : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                    title={favourites.includes(t.id) ? 'Remove Favorite' : 'Add to Favorites'}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill={favourites.includes(t.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPlaylistModalTrack(t)
+                    }}
+                    className="p-1.5 rounded-lg text-text-secondary hover:text-champagne hover:bg-white/[0.08] transition-colors"
+                    title="Add to Playlist"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M8 6h13M8 12h13M8 18h7M3 6h.01M3 12h.01M3 18h.01" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      playTrackDirect(t)
+                      onClose()
+                    }}
+                    className="rounded-full bg-champagne/15 border border-champagne/40 px-2.5 py-1 text-[10px] font-mono text-champagne hover:bg-champagne hover:text-bg-primary transition-all"
+                  >
                     Play in 3D
                   </button>
                 </div>
@@ -179,6 +215,12 @@ export default function QuickSearchModal({ isOpen, onClose }: { isOpen: boolean;
           )}
         </div>
       </div>
+
+      <AddToPlaylistModal
+        track={playlistModalTrack}
+        isOpen={Boolean(playlistModalTrack)}
+        onClose={() => setPlaylistModalTrack(null)}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { clsx } from 'clsx'
 import MusicPlayer from '@/components/MusicPlayer/MusicPlayer'
 import SettingsPanel from '@/components/VisualizerSettings/SettingsPanel'
 import { useStore, type WorldId } from '@/store/useStore'
+import { syncUserData } from '@/services/userSync'
 
 export default function Profile() {
   const world = useStore((s) => s.world)
@@ -48,6 +49,7 @@ export default function Profile() {
         const u = data.user || { email, name: email.split('@')[0] }
         localStorage.setItem('soniq-user', JSON.stringify(u))
         setUser(u)
+        syncUserData().catch(() => {})
         setStatus('Signed in successfully via SONIQ API.')
         setLoading(false)
         return
