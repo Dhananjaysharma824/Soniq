@@ -197,10 +197,14 @@ export const useStore = create<MusicState>((set, get) => ({
     await audioEngine.resume()
 
     if (el) {
+      el.muted = get().muted
+      const vol = get().muted ? 0 : get().volume
+      audioEngine.setVolume(vol)
       audioEngine.loadSource(track.src)
       el.playbackRate = get().playbackRate
       try {
         await el.play()
+        await audioEngine.resume()
         set({ isBuffering: false, isPlaying: true, playbackError: null })
       } catch (err: unknown) {
         const error = err as Error
@@ -308,20 +312,28 @@ export const useStore = create<MusicState>((set, get) => ({
 
   setVolume: (v) => {
     const vol = Math.max(0, Math.min(1, v))
+    const el = audioEngine.getAudioElement()
+    if (el) {
+      el.muted = vol === 0
+    }
     audioEngine.setVolume(vol)
     set({ volume: vol, muted: vol === 0 })
     savePrefs({ volume: vol })
+    audioEngine.resume()
   },
 
   toggleMute: () => {
     const { muted, volume } = get()
-    if (muted) {
-      audioEngine.setVolume(volume || 0.8)
-      set({ muted: false })
-    } else {
-      audioEngine.setVolume(0)
-      set({ muted: true })
+    const nextMuted = !muted
+    const nextVol = nextMuted ? 0 : (volume || 0.8)
+    const el = audioEngine.getAudioElement()
+    if (el) {
+      el.muted = nextMuted
     }
+    audioEngine.setVolume(nextVol)
+    set({ muted: nextMuted, volume: nextVol })
+    savePrefs({ volume: nextVol })
+    audioEngine.resume()
   },
 
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),

@@ -93,6 +93,7 @@ export class AudioEngine {
 
     if (!this.gainNode) {
       this.gainNode = this.context.createGain()
+      this.gainNode.gain.value = 0.8
       this.gainNode.connect(this.context.destination)
     }
 
@@ -100,9 +101,17 @@ export class AudioEngine {
       this.audioElement = element ?? new Audio()
       this.audioElement.crossOrigin = 'anonymous'
       this.audioElement.preload = 'auto'
+      this.audioElement.muted = false
+      if (typeof document !== 'undefined' && !document.getElementById('soniq-audio-element')) {
+        this.audioElement.id = 'soniq-audio-element'
+        this.audioElement.style.display = 'none'
+        document.body.appendChild(this.audioElement)
+      }
       this.attachListeners(this.audioElement)
     } else if (element && element !== this.audioElement) {
       this.audioElement = element
+      this.audioElement.crossOrigin = 'anonymous'
+      this.audioElement.muted = false
       this.source = null
       this.attachListeners(this.audioElement)
     }
@@ -190,14 +199,36 @@ export class AudioEngine {
   }
 
   async resume(): Promise<void> {
-    if (this.context?.state === 'suspended') {
-      await this.context.resume().catch(() => {})
+    if (!this.context) return
+    if (this.context.state !== 'running') {
+      try {
+        await this.context.resume()
+      } catch (err) {
+        console.warn('AudioContext resume error:', err)
+      }
+    }
+    if (this.audioElement && this.audioElement.muted && (this.gainNode?.gain.value ?? 0.8) > 0) {
+      this.audioElement.muted = false
     }
   }
 
   setVolume(v: number): void {
-    if (this.gainNode) this.gainNode.gain.value = Math.max(0, Math.min(1, v))
-    if (this.audioElement) this.audioElement.volume = 1
+    const vol = Math.max(0, Math.min(1, v))
+    if (this.gainNode) {
+      if (this.context && this.context.state === 'running') {
+        try {
+          this.gainNode.gain.setValueAtTime(vol, this.context.currentTime)
+        } catch {
+          this.gainNode.gain.value = vol
+        }
+      } else {
+        this.gainNode.gain.value = vol
+      }
+    }
+    if (this.audioElement) {
+      this.audioElement.volume = 1.0
+      this.audioElement.muted = vol === 0
+    }
   }
 
   getVolume(): number {
@@ -232,6 +263,10 @@ export class AudioEngine {
 
   update(): AudioAnalysis {
     if (!this.analyser || !this.context) return this.analysis
+
+    if (this.context.state === 'suspended') {
+      this.context.resume().catch(() => {})
+    }
 
     this.analyser.getByteFrequencyData(this.spectrumData as Uint8Array<ArrayBuffer>)
     this.analyser.getFloatTimeDomainData(this.waveformData as Float32Array<ArrayBuffer>)

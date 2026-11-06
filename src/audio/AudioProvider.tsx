@@ -22,17 +22,23 @@ export default function AudioProvider({ children }: { children: ReactNode }) {
     // Initialize audio element
     initEngine().catch(() => {})
 
-    const unlockOnGesture = async () => {
-      await audioEngine.resume()
-      window.removeEventListener('pointerdown', unlockOnGesture)
-      window.removeEventListener('keydown', unlockOnGesture)
+    const unlockOnGesture = () => {
+      audioEngine.resume()
+      const el = audioEngine.getAudioElement()
+      if (el && el.muted && !useStore.getState().muted) {
+        el.muted = false
+      }
     }
 
-    window.addEventListener('pointerdown', unlockOnGesture, { once: true })
-    window.addEventListener('keydown', unlockOnGesture, { once: true })
+    window.addEventListener('pointerdown', unlockOnGesture)
+    window.addEventListener('click', unlockOnGesture)
+    window.addEventListener('keydown', unlockOnGesture)
+    window.addEventListener('touchstart', unlockOnGesture)
     return () => {
       window.removeEventListener('pointerdown', unlockOnGesture)
+      window.removeEventListener('click', unlockOnGesture)
       window.removeEventListener('keydown', unlockOnGesture)
+      window.removeEventListener('touchstart', unlockOnGesture)
     }
   }, [])
 
