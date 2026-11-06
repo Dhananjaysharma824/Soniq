@@ -103,6 +103,12 @@ interface MusicState {
   addToQueue: (track: Track) => void
   removeFromQueue: (index: number) => void
   clearQueue: () => void
+  // Audio enhancements
+  eqPreset: 'flat' | 'bass' | 'vocal' | 'treble' | 'electronic' | 'acoustic'
+  setEqPreset: (preset: 'flat' | 'bass' | 'vocal' | 'treble' | 'electronic' | 'acoustic') => void
+  sleepTimerRemaining: number | null
+  setSleepTimer: (minutes: number | null) => void
+  decrementSleepTimer: () => void
 }
 
 const defaultSettings: VisualizerSettings = {
@@ -177,6 +183,31 @@ export const useStore = create<MusicState>((set, get) => ({
   recentlyPlayed: prefs.recentlyPlayed ?? [],
   favourites: prefs.favourites ?? [],
   playlists: prefs.playlists ?? [],
+  eqPreset: (prefs.eqPreset as 'flat' | 'bass' | 'vocal' | 'treble' | 'electronic' | 'acoustic') ?? 'flat',
+  setEqPreset: (preset) => {
+    audioEngine.setEqPreset(preset)
+    savePrefs({ eqPreset: preset })
+    set({ eqPreset: preset })
+  },
+  sleepTimerRemaining: null,
+  setSleepTimer: (minutes) => {
+    if (minutes === null) {
+      set({ sleepTimerRemaining: null })
+      return
+    }
+    set({ sleepTimerRemaining: minutes * 60 })
+  },
+  decrementSleepTimer: () => {
+    const { sleepTimerRemaining } = get()
+    if (sleepTimerRemaining === null) return
+    if (sleepTimerRemaining <= 1) {
+      const el = audioEngine.getAudioElement()
+      el?.pause()
+      set({ isPlaying: false, sleepTimerRemaining: null })
+    } else {
+      set({ sleepTimerRemaining: sleepTimerRemaining - 1 })
+    }
+  },
   world: (prefs.world as WorldId) ?? 'space',
   settings: { ...defaultSettings, ...(prefs.settings ?? {}) },
   analysisRef: null,
@@ -242,6 +273,7 @@ export const useStore = create<MusicState>((set, get) => ({
       el.muted = get().muted
       const vol = get().muted ? 0 : get().volume
       audioEngine.setVolume(vol)
+      audioEngine.setEqPreset(get().eqPreset)
       audioEngine.loadSource(track.src)
       el.playbackRate = get().playbackRate
       try {

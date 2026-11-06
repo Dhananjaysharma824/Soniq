@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, useEffect, type ChangeEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { clsx } from 'clsx'
 import { useStore, type Track } from '@/store/useStore'
 import { audioEngine } from '@/audio/AudioEngine'
 import AddToPlaylistModal from '@/components/AddToPlaylistModal'
+import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal'
 
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) return '0:00'
@@ -17,6 +18,10 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [showQueue, setShowQueue] = useState(false)
+  const [showSleepMenu, setShowSleepMenu] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekVal, setSeekVal] = useState(0)
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
@@ -32,6 +37,13 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
   const muted = useStore((s) => s.muted)
   const shuffle = useStore((s) => s.shuffle)
   const repeat = useStore((s) => s.repeat)
+  const playbackRate = useStore((s) => s.playbackRate)
+  const setPlaybackRate = useStore((s) => s.setPlaybackRate)
+  const eqPreset = useStore((s) => s.eqPreset)
+  const setEqPreset = useStore((s) => s.setEqPreset)
+  const sleepTimerRemaining = useStore((s) => s.sleepTimerRemaining)
+  const setSleepTimer = useStore((s) => s.setSleepTimer)
+  const decrementSleepTimer = useStore((s) => s.decrementSleepTimer)
 
   const togglePlay = useStore((s) => s.togglePlay)
   const next = useStore((s) => s.next)
@@ -51,6 +63,123 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
   const track = queue[currentIndex]
   const isExperience = location.pathname === '/experience'
   const isFav = track ? favourites.includes(track.id) : false
+
+  // Keyboard shortcut event listener for '?'
+  useEffect(() => {
+    const onToggle = () => setShowShortcutsModal((v) => !v)
+    window.addEventListener('toggle-shortcuts-modal', onToggle)
+    return () => window.removeEventListener('toggle-shortcuts-modal', onToggle)
+  }, [])
+
+  // Sleep timer interval countdown
+  useEffect(() => {
+    if (sleepTimerRemaining === null || sleepTimerRemaining <= 0) return
+    const interval = setInterval(() => {
+      decrementSleepTimer()
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [sleepTimerRemaining, decrementSleepTimer])
+
+  // Native OS MediaSession API Integration (Lockscreen, Notification Bar, Keyboard/Earphone Controls)
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !track) return
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title,
+        artist: track.artist,
+        album: track.album || 'SONIQ',
+        artwork: track.artwork
+          ? [
+              { src: track.artwork, sizes: '96x96', type: 'image/jpeg' },
+              { src: track.artwork, sizes: '128x128', type: 'image/jpeg' },
+              { src: track.artwork, sizes: '256x256', type: 'image/jpeg' },
+              { src: track.artwork, sizes: '512x512', type: 'image/jpeg' },
+            ]
+          : [],
+      })
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'
+
+      const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
+        ['play', () => togglePlay()],
+        ['pause', () => togglePlay()],
+        ['nexttrack', () => next()],
+        ['previoustrack', () => prev()],
+        ['seekto', (details) => { if (details.seekTime != null) seek(details.seekTime) }],
+        ['seekforward', () => seek(Math.min(duration || 0, currentTime + 10))],
+        ['seekbackward', () => seek(Math.max(0, currentTime - 10))],
+      ]
+
+      for (const [action, handler] of actions) {
+        try {
+          navigator.mediaSession.setActionHandler(action, handler)
+        } catch {
+          /* unsupported action */
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [track, isPlaying, duration, currentTime, togglePlay, next, prev, seek])
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 2500)
+  }
+
+  const handleCycleSpeed = () => {
+    const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
+    const curIdx = SPEEDS.indexOf(playbackRate)
+    const nextIdx = (curIdx + 1) % SPEEDS.length
+    const nextSpeed = SPEEDS[nextIdx >= 0 ? nextIdx : 1]
+    setPlaybackRate(nextSpeed)
+    showToast(`Speed: ${nextSpeed}x`)
+  }
+
+  const handleDownload = async () => {
+    if (!track) return
+    try {
+      showToast('Downloading audio track...')
+      const res = await fetch(track.src)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${track.artist} - ${track.title}.mp3`.replace(/[/\\?%*:|"<>]/g, '')
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      showToast('Downloaded to device!')
+    } catch {
+      window.open(track.src, '_blank')
+      showToast('Downloading via new tab...')
+    }
+  }
+
+  const handleShare = async () => {
+    if (!track) return
+    const shareData = {
+      title: track.title,
+      text: `Listening to "${track.title}" by ${track.artist} on SONIQ!`,
+      url: window.location.href,
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch {
+        /* fallback */
+      }
+    }
+    await navigator.clipboard.writeText(`${track.title} - ${track.artist} on SONIQ`)
+    showToast('Song info copied to clipboard!')
+  }
+
+  const formatSleepTimer = (sec: number) => {
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return `${m}m ${s.toString().padStart(2, '0')}s`
+  }
 
   const onUpload = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -404,11 +533,11 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
             </div>
           </div>
 
-          {/* RIGHT: Volume, Upload & Queue */}
-          <div className="flex w-[30%] items-center justify-end gap-3">
+          {/* RIGHT: Volume, Speed, Sleep Timer, More Options & Queue */}
+          <div className="flex w-[35%] items-center justify-end gap-2 md:gap-3 relative">
             <button
               onClick={() => fileRef.current?.click()}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] px-3 py-1 font-sans text-xs text-text-secondary hover:text-text-primary hover:border-white/20 transition-colors"
+              className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] px-3 py-1 font-sans text-xs text-text-secondary hover:text-text-primary hover:border-white/20 transition-colors"
               title="Upload audio file"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -417,38 +546,229 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
               Upload
             </button>
 
+            {/* Playback Speed Pill */}
             <button
-              onClick={toggleMute}
-              className="text-text-secondary hover:text-text-primary transition-colors"
-              aria-label={muted || volume === 0 ? 'Unmute' : 'Mute'}
-            >
-              {muted || volume === 0 ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                </svg>
+              onClick={handleCycleSpeed}
+              className={clsx(
+                'rounded-lg px-2 py-1 font-mono text-[11px] font-semibold transition-colors',
+                playbackRate !== 1
+                  ? 'bg-champagne/15 text-champagne border border-champagne/30'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
+              title={`Playback Speed: ${playbackRate}x (Click to cycle)`}
+            >
+              {playbackRate}x
             </button>
 
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={muted ? 0 : volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-20 hidden md:block"
-              aria-label="Volume level"
-            />
+            {/* Sleep Timer Button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowSleepMenu((v) => !v)
+                  setShowMoreMenu(false)
+                }}
+                className={clsx(
+                  'rounded-lg p-1.5 transition-colors flex items-center gap-1',
+                  sleepTimerRemaining !== null
+                    ? 'bg-champagne/15 text-champagne'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
+                )}
+                title={sleepTimerRemaining ? `Sleep timer: ${formatSleepTimer(sleepTimerRemaining)} remaining` : 'Sleep Timer'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+                {sleepTimerRemaining !== null && (
+                  <span className="font-mono text-[10px] font-bold text-champagne">
+                    {Math.ceil(sleepTimerRemaining / 60)}m
+                  </span>
+                )}
+              </button>
 
+              {/* Sleep Timer Dropdown */}
+              {showSleepMenu && (
+                <div className="absolute bottom-10 right-0 z-50 w-44 rounded-xl border border-white/[0.1] bg-bg-secondary/95 p-2 shadow-2xl backdrop-blur-2xl space-y-1">
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
+                    Sleep Timer
+                  </div>
+                  {[15, 30, 45, 60].map((mins) => (
+                    <button
+                      key={mins}
+                      onClick={() => {
+                        setSleepTimer(mins)
+                        setShowSleepMenu(false)
+                        showToast(`Sleep timer set for ${mins} minutes`)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between"
+                    >
+                      <span>{mins} minutes</span>
+                      {sleepTimerRemaining && Math.round(sleepTimerRemaining / 60) === mins && (
+                        <span className="text-champagne">✓</span>
+                      )}
+                    </button>
+                  ))}
+                  {sleepTimerRemaining !== null && (
+                    <button
+                      onClick={() => {
+                        setSleepTimer(null)
+                        setShowSleepMenu(false)
+                        showToast('Sleep timer turned off')
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      Turn Off Timer
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Volume Control */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={toggleMute}
+                className="text-text-secondary hover:text-text-primary transition-colors p-1"
+                aria-label={muted || volume === 0 ? 'Unmute' : 'Mute'}
+                title={`Volume: ${Math.round((muted ? 0 : volume) * 100)}%`}
+              >
+                {muted || volume === 0 ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                )}
+              </button>
+
+              <div className="relative group/vol flex items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={muted ? 0 : volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="w-16 sm:w-20 hidden sm:block"
+                  aria-label="Volume level"
+                />
+                <span className="hidden group-hover/vol:block absolute -top-7 left-1/2 -translate-x-1/2 rounded bg-surface border border-white/[0.1] px-1.5 py-0.5 text-[9px] font-mono text-champagne shadow-md pointer-events-none">
+                  {Math.round((muted ? 0 : volume) * 100)}%
+                </span>
+              </div>
+            </div>
+
+            {/* More Options Menu (•••) */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowMoreMenu((v) => !v)
+                  setShowSleepMenu(false)
+                }}
+                className={clsx(
+                  'rounded-lg p-1.5 transition-colors',
+                  showMoreMenu ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
+                )}
+                title="Sound & Player Options"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="19" cy="12" r="2" />
+                  <circle cx="5" cy="12" r="2" />
+                </svg>
+              </button>
+
+              {/* More Options Dropdown */}
+              {showMoreMenu && (
+                <div className="absolute bottom-10 right-0 z-50 w-52 rounded-xl border border-white/[0.1] bg-bg-secondary/95 p-2 shadow-2xl backdrop-blur-2xl space-y-1">
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-text-secondary/70 border-b border-white/[0.06] mb-1">
+                    Sound & Options
+                  </div>
+
+                  {track && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleDownload()
+                          setShowMoreMenu(false)
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                        </svg>
+                        <span>Download MP3</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleShare()
+                          setShowMoreMenu(false)
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                        </svg>
+                        <span>Share Song</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Equalizer Presets */}
+                  <div className="pt-1 mt-1 border-t border-white/[0.06]">
+                    <div className="px-2 py-1 text-[10px] font-mono text-text-secondary/70">
+                      Audio EQ Preset
+                    </div>
+                    {(['flat', 'bass', 'vocal', 'treble', 'electronic', 'acoustic'] as const).map((eq) => (
+                      <button
+                        key={eq}
+                        onClick={() => {
+                          setEqPreset(eq)
+                          setShowMoreMenu(false)
+                          showToast(`Audio EQ: ${eq.charAt(0).toUpperCase() + eq.slice(1)}`)
+                        }}
+                        className="w-full text-left px-2.5 py-1 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center justify-between capitalize"
+                      >
+                        <span>{eq === 'flat' ? 'Flat (Original)' : `${eq} Boost`}</span>
+                        {eqPreset === eq && <span className="text-champagne">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Keyboard Shortcuts Trigger */}
+                  <div className="pt-1 mt-1 border-t border-white/[0.06]">
+                    <button
+                      onClick={() => {
+                        setShowShortcutsModal(true)
+                        setShowMoreMenu(false)
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/[0.08] text-text-secondary hover:text-champagne transition-colors flex items-center gap-2"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <line x1="6" y1="8" x2="6" y2="8" />
+                        <line x1="10" y1="8" x2="10" y2="8" />
+                        <line x1="14" y1="8" x2="14" y2="8" />
+                      </svg>
+                      <span>Keyboard Shortcuts</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Queue Toggle Button */}
             <button
               onClick={() => setShowQueue((v) => !v)}
               className={clsx(
                 'rounded-lg p-1.5 transition-colors',
-                showQueue ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary',
+                showQueue ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
               title="Show queue"
               aria-label="Queue"
@@ -466,10 +786,23 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
         </div>
       </div>
 
+      {/* Floating Feedback Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full border border-champagne/40 bg-bg-secondary/95 px-4 py-1.5 text-xs font-medium text-champagne shadow-2xl backdrop-blur-xl flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-champagne animate-pulse" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <AddToPlaylistModal
         track={playlistModalTrack}
         isOpen={Boolean(playlistModalTrack)}
         onClose={() => setPlaylistModalTrack(null)}
+      />
+
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
       />
     </>
   )

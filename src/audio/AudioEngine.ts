@@ -31,6 +31,9 @@ export class AudioEngine {
   private context: AudioContext | null = null
   private analyser: AnalyserNode | null = null
   private source: MediaElementAudioSourceNode | null = null
+  private bassFilter: BiquadFilterNode | null = null
+  private midFilter: BiquadFilterNode | null = null
+  private trebleFilter: BiquadFilterNode | null = null
   private gainNode: GainNode | null = null
   private audioElement: HTMLAudioElement | null = null
   private fftSize: number
@@ -91,6 +94,26 @@ export class AudioEngine {
       this.analysis.waveform = this.waveformData
     }
 
+    if (!this.bassFilter) {
+      this.bassFilter = this.context.createBiquadFilter()
+      this.bassFilter.type = 'lowshelf'
+      this.bassFilter.frequency.value = 250
+      this.bassFilter.gain.value = 0
+    }
+    if (!this.midFilter) {
+      this.midFilter = this.context.createBiquadFilter()
+      this.midFilter.type = 'peaking'
+      this.midFilter.frequency.value = 1500
+      this.midFilter.Q.value = 1.0
+      this.midFilter.gain.value = 0
+    }
+    if (!this.trebleFilter) {
+      this.trebleFilter = this.context.createBiquadFilter()
+      this.trebleFilter.type = 'highshelf'
+      this.trebleFilter.frequency.value = 4000
+      this.trebleFilter.gain.value = 0
+    }
+
     if (!this.gainNode) {
       this.gainNode = this.context.createGain()
       this.gainNode.gain.value = 0.8
@@ -120,7 +143,10 @@ export class AudioEngine {
       try {
         this.source = this.context.createMediaElementSource(this.audioElement)
         this.source.connect(this.analyser)
-        this.analyser.connect(this.gainNode)
+        this.analyser.connect(this.bassFilter)
+        this.bassFilter.connect(this.midFilter)
+        this.midFilter.connect(this.trebleFilter)
+        this.trebleFilter.connect(this.gainNode)
       } catch {
         // MediaElementSource can only be created once per element
       }
@@ -128,6 +154,36 @@ export class AudioEngine {
 
     this.isInitialized = true
     return this.audioElement
+  }
+
+  setEq(bassGain: number, midGain: number, trebleGain: number) {
+    if (this.bassFilter) this.bassFilter.gain.value = bassGain
+    if (this.midFilter) this.midFilter.gain.value = midGain
+    if (this.trebleFilter) this.trebleFilter.gain.value = trebleGain
+  }
+
+  setEqPreset(preset: 'flat' | 'bass' | 'vocal' | 'treble' | 'electronic' | 'acoustic') {
+    switch (preset) {
+      case 'bass':
+        this.setEq(7, 0, -1)
+        break
+      case 'vocal':
+        this.setEq(-2, 5, 2)
+        break
+      case 'treble':
+        this.setEq(-1, 0, 6)
+        break
+      case 'electronic':
+        this.setEq(6, -1, 5)
+        break
+      case 'acoustic':
+        this.setEq(2, 2, 3)
+        break
+      case 'flat':
+      default:
+        this.setEq(0, 0, 0)
+        break
+    }
   }
 
   private attachListeners(el: HTMLAudioElement) {

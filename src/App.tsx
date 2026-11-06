@@ -12,9 +12,11 @@ import Profile from '@/pages/Profile/Profile'
 import { useStore } from '@/store/useStore'
 import { demoTracks } from '@/data/demoTracks'
 import { syncUserData } from '@/services/userSync'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 export default function App() {
   const location = useLocation()
+  useKeyboardShortcuts()
   const setTracks = useStore((s) => s.setTracks)
   const queue = useStore((s) => s.queue)
   const settings = useStore((s) => s.settings)

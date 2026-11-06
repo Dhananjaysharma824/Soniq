@@ -43,6 +43,15 @@ export function useKeyboardShortcuts() {
         case 'r':
           s.cycleRepeat()
           break
+        case '?':
+          window.dispatchEvent(new CustomEvent('toggle-shortcuts-modal'))
+          break
+        case 'l':
+          {
+            const cur = s.queue[s.currentIndex]
+            if (cur) s.toggleFavourite(cur.id, cur)
+          }
+          break
       }
     }
     window.addEventListener('keydown', onKey)
