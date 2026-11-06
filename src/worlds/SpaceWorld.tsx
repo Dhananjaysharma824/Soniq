@@ -58,9 +58,10 @@ export default function SpaceWorld() {
         <sphereGeometry args={[28, 32, 32]} />
         <meshBasicMaterial color="#1a284a" transparent opacity={0.05} side={THREE.BackSide} depthWrite={false} />
       </mesh>
-      <ambientLight intensity={0.35} />
-      <directionalLight position={[4, 6, 4]} intensity={0.7} color="#f0f4ff" />
-      <pointLight position={[-4, -2, 3]} intensity={0.5} color="#C5A875" />
+      <ambientLight intensity={0.75} color="#dbe4ff" />
+      <pointLight position={[-8, 5, -5]} intensity={1.8} color="#C5A875" />
+      <pointLight position={[8, -4, -4]} intensity={1.4} color="#7AA2F7" />
+      <pointLight position={[0, 8, -6]} intensity={1.0} color="#FAF8F5" />
     </group>
   )
 }

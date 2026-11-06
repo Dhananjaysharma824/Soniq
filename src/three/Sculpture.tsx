@@ -100,21 +100,25 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 n) {
-           // 10 to 14 distinct standing waves distributed smoothly across the sphere
-           float n1 = snoise(n * 3.2);
-           // Smooth, elegant wave crests without harsh needle peaks
-           float wave = pow(max(0.0, n1), 2.0);
+           // Flowing sculptural harmonic waves (luxury organic fluid metamaterial)
+           float w1 = sin(n.x * 2.6 + uPhase * 0.35) * cos(n.y * 2.6) * sin(n.z * 2.6 + uPhase * 0.25);
+           float w2 = snoise(n * 2.4 + vec3(uPhase * 0.12));
+           float fluid = (w1 * 0.55 + w2 * 0.45);
 
-           // Harmonic texture from secondary octave
-           float n2 = snoise(n * 6.4);
-           float detail = pow(max(0.0, n2), 1.6) * 0.35;
+           // Broad, elegant fluid wave crests (smooth like molten platinum)
+           float wave = sin(fluid * 3.14159) * 0.5 + 0.5;
+           wave = pow(wave, 1.4);
 
-           // Harmonious music power: smooth swell with beat and bass
-           float musicPower = uBeat * 0.42 + uBass * 0.25;
+           // Secondary harmonic detail for ripples
+           float n3 = snoise(n * 5.5);
+           float ripple = pow(max(0.0, n3), 1.8) * 0.25;
+
+           // Dynamic music pulse: expands on beat and bass with zero latency
+           float pulsePower = uBass * 0.32 + uBeat * 0.42;
            float midPower = uMid * 0.10 + uTreble * 0.05;
 
-           float totalDisp = (wave * musicPower + detail * midPower) * uDeform;
-           return clamp(totalDisp, 0.0, 0.50);
+           float totalDisp = (wave * pulsePower + ripple * midPower) * uDeform;
+           return clamp(totalDisp, -0.05, 0.50);
          }
         `,
       )
@@ -185,19 +189,19 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
     if (mesh.current) {
       // Smooth, majestic studio spin
-      mesh.current.rotation.y += delta * 0.18 * motion
-      mesh.current.rotation.x = Math.sin(phase.current * 0.3) * 0.04
+      mesh.current.rotation.y += delta * 0.16 * motion
+      mesh.current.rotation.x = Math.sin(phase.current * 0.35) * 0.05
 
-      // Gentle, organic scale pulse
-      const pulse = 1.0 + beat * 0.10 + bass * 0.05
+      // Dynamic scale pulse on the beat
+      const pulse = 1.0 + beat * 0.12 + bass * 0.06
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Gentle champagne sheen on beat impact
-      const glow = 0.02 + beat * 0.20 + bass * 0.06
+      // Warm champagne glow from the creases on beat impact
+      const glow = 0.03 + beat * 0.28 + bass * 0.10
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.18, 0.26 - beat * 0.06)
+      material.current.roughness = Math.max(0.12, 0.20 - beat * 0.06)
     }
   })
 
@@ -209,15 +213,15 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       <sphereGeometry args={[0.90, segments, segments]} />
       <meshPhysicalMaterial
         ref={material}
-        color="#F2EFE9"
-        metalness={0.88}
-        roughness={0.22}
-        clearcoat={0.5}
-        clearcoatRoughness={0.20}
-        reflectivity={0.8}
-        envMapIntensity={1.0}
+        color="#EAE6DF"
+        metalness={0.92}
+        roughness={0.16}
+        clearcoat={1.0}
+        clearcoatRoughness={0.10}
+        reflectivity={1.0}
+        envMapIntensity={1.4}
         emissive="#C5A875"
-        emissiveIntensity={0.02}
+        emissiveIntensity={0.03}
         onBeforeCompile={onBeforeCompile}
       />
     </mesh>
