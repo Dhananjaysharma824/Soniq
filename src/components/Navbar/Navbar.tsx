@@ -1,0 +1,168 @@
+import { useState } from 'react'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { clsx } from 'clsx'
+import { useStore, type WorldId } from '@/store/useStore'
+
+const navLinks = [
+  { to: '/discover', label: 'Discover' },
+  { to: '/experience', label: 'Experience' },
+  { to: '/worlds', label: 'Worlds' },
+  { to: '/library', label: 'Library' },
+]
+
+const worldIds: WorldId[] = ['space', 'ocean', 'dream', 'tunnel']
+
+export default function Navbar() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isPlaying = useStore((s) => s.isPlaying)
+  const world = useStore((s) => s.world)
+  const setWorld = useStore((s) => s.setWorld)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const isHome = location.pathname === '/'
+  const isExperience = location.pathname === '/experience'
+
+  return (
+    <header
+      className={clsx(
+        'z-50 flex items-center justify-between px-5 py-4 md:px-8',
+        isHome || isExperience
+          ? 'absolute left-0 right-0 top-0'
+          : 'sticky top-0 bg-bg-primary/80 backdrop-blur-lg border-b border-white/[0.04]',
+      )}
+    >
+      {/* Left — Logo */}
+      <Link to="/" className="flex items-center gap-2 group" aria-label="SONIQ home">
+        <SoniqMark playing={isPlaying} />
+        <span className="font-display text-[15px] font-semibold tracking-tight text-text-primary">
+          SONIQ
+        </span>
+      </Link>
+
+      {/* Center — Navigation / World switcher */}
+      <nav className="hidden items-center gap-1 md:flex">
+        {isExperience ? (
+          /* World switcher pills on Experience page */
+          worldIds.map((w) => (
+            <button
+              key={w}
+              onClick={() => setWorld(w)}
+              className={clsx(
+                'rounded-full px-3.5 py-1.5 font-sans text-[11px] font-medium tracking-wide capitalize transition-all duration-200',
+                world === w
+                  ? 'bg-text-primary text-bg-primary'
+                  : 'text-text-secondary hover:text-text-primary',
+              )}
+            >
+              {w}
+            </button>
+          ))
+        ) : (
+          /* Standard nav links */
+          navLinks.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              className={({ isActive }) =>
+                clsx(
+                  'rounded-full px-3.5 py-1.5 font-sans text-[11px] font-medium tracking-wide transition-colors duration-200',
+                  isActive
+                    ? 'text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary',
+                )
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))
+        )}
+      </nav>
+
+      {/* Right — Actions */}
+      <div className="flex items-center gap-3">
+        {isExperience && (
+          <button
+            onClick={() => document.documentElement.requestFullscreen?.()}
+            className="hidden md:block font-sans text-[11px] font-medium tracking-wide text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Fullscreen
+          </button>
+        )}
+        <button
+          onClick={() => navigate('/profile')}
+          className="font-sans text-[11px] font-medium tracking-wide text-text-secondary transition-colors hover:text-text-primary"
+        >
+          Profile
+        </button>
+        {/* Mobile menu toggle */}
+        <button
+          onClick={() => setMobileOpen((v) => !v)}
+          className="md:hidden flex flex-col gap-[3px] p-1"
+          aria-label="Toggle menu"
+        >
+          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && 'translate-y-[4.5px] rotate-45')} />
+          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && 'opacity-0')} />
+          <span className={clsx('h-[1.5px] w-4 bg-text-primary transition-all duration-200', mobileOpen && '-translate-y-[4.5px] -rotate-45')} />
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div className="absolute left-0 right-0 top-full z-50 border-b border-white/[0.04] bg-bg-primary/95 backdrop-blur-xl md:hidden">
+          <nav className="flex flex-col px-5 py-4 gap-1">
+            {isExperience ? (
+              worldIds.map((w) => (
+                <button
+                  key={w}
+                  onClick={() => { setWorld(w); setMobileOpen(false) }}
+                  className={clsx(
+                    'rounded-lg px-3 py-2.5 text-left font-sans text-sm capitalize transition-colors',
+                    world === w ? 'text-text-primary bg-white/[0.04]' : 'text-text-secondary',
+                  )}
+                >
+                  {w}
+                </button>
+              ))
+            ) : (
+              navLinks.map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    clsx(
+                      'rounded-lg px-3 py-2.5 font-sans text-sm transition-colors',
+                      isActive ? 'text-text-primary bg-white/[0.04]' : 'text-text-secondary',
+                    )
+                  }
+                >
+                  {l.label}
+                </NavLink>
+              ))
+            )}
+            <NavLink
+              to="/profile"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2.5 font-sans text-sm text-text-secondary transition-colors"
+            >
+              Profile
+            </NavLink>
+          </nav>
+        </div>
+      )}
+    </header>
+  )
+}
+
+function SoniqMark({ playing }: { playing: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden="true" className="text-text-primary">
+      <rect x="2" y="8" width="2" height="6" rx="1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
+      <rect x="6" y="5" width="2" height="12" rx="1" fill="currentColor" style={{ opacity: 0.8 }} />
+      <rect x="10" y="3" width="2" height="16" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="2" height="12" rx="1" fill="currentColor" style={{ opacity: 0.8 }} />
+      <rect x="18" y="8" width="2" height="6" rx="1" fill="currentColor" className={playing ? 'animate-pulse' : ''} />
+    </svg>
+  )
+}
