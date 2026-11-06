@@ -13,6 +13,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const smoothedBass = useRef(0)
   const smoothedBeat = useRef(0)
   const smoothedMid = useRef(0)
+  const smoothedTreble = useRef(0)
 
   const uniforms = useMemo(
     () => ({
@@ -99,20 +100,21 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
          }
 
          float getDisplacement(vec3 n) {
-           // 10 to 14 distinct standing wave spikes distributed across 3D sphere
-           float n1 = snoise(n * 3.4);
-           float spikes = pow(max(0.0, n1), 2.2);
+           // 10 to 14 distinct standing waves distributed smoothly across the sphere
+           float n1 = snoise(n * 3.2);
+           // Smooth, elegant wave crests without harsh needle peaks
+           float wave = pow(max(0.0, n1), 2.0);
 
-           // Rhythmic audio drive: waves ONLY shoot out on the kick drum & bass hits!
-           // In between beats, punch drops near 0 so the sphere is smooth and clean
-           float punch = pow(uBeat, 1.4) * 0.52 + pow(uBass, 2.6) * 0.28;
+           // Harmonic texture from secondary octave
+           float n2 = snoise(n * 6.4);
+           float detail = pow(max(0.0, n2), 1.6) * 0.35;
 
-           // Subtle musical ripple on mids
-           float midRipple = snoise(n * 6.5) * 0.5 + 0.5;
-           float midDetail = pow(midRipple, 2.0) * (uMid * 0.08);
+           // Harmonious music power: smooth swell with beat and bass
+           float musicPower = uBeat * 0.42 + uBass * 0.25;
+           float midPower = uMid * 0.10 + uTreble * 0.05;
 
-           float totalDisp = (spikes * punch + midDetail) * uDeform;
-           return clamp(totalDisp, 0.0, 0.60);
+           float totalDisp = (wave * musicPower + detail * midPower) * uDeform;
+           return clamp(totalDisp, 0.0, 0.50);
          }
         `,
       )
@@ -150,10 +152,27 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     const s = settings
     const motion = s.reducedMotion ? 0 : 1
 
-    const bass = (a.bass ?? 0) * s.bassSensitivity
-    const beat = (a.beatStrength ?? 0) * s.beatIntensity
-    const mid = (a.mid ?? 0) * s.midSensitivity
-    const treble = (a.treble ?? 0) * s.trebleSensitivity
+    const rawBass = (a.bass ?? 0) * s.bassSensitivity
+    const rawBeat = (a.beatStrength ?? 0) * s.beatIntensity
+    const rawMid = (a.mid ?? 0) * s.midSensitivity
+    const rawTreble = (a.treble ?? 0) * s.trebleSensitivity
+
+    // Asymmetric musical damping:
+    // Attack: Fast & responsive (16.0 ~ 30ms) to feel synchronized on the beat
+    // Decay: Silky smooth liquid release (6.0 ~ 150ms) to eliminate all jerks / popping
+    const beatLerp = rawBeat > smoothedBeat.current ? 16.0 : 6.0
+    smoothedBeat.current += (rawBeat - smoothedBeat.current) * Math.min(1.0, delta * beatLerp)
+
+    const bassLerp = rawBass > smoothedBass.current ? 12.0 : 5.0
+    smoothedBass.current += (rawBass - smoothedBass.current) * Math.min(1.0, delta * bassLerp)
+
+    smoothedMid.current += (rawMid - smoothedMid.current) * Math.min(1.0, delta * 8.0)
+    smoothedTreble.current += (rawTreble - smoothedTreble.current) * Math.min(1.0, delta * 8.0)
+
+    const beat = smoothedBeat.current
+    const bass = smoothedBass.current
+    const mid = smoothedMid.current
+    const treble = smoothedTreble.current
 
     phase.current += delta * motion
 
@@ -166,19 +185,19 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
     if (mesh.current) {
       // Smooth, majestic studio spin
-      mesh.current.rotation.y += delta * 0.20 * motion
-      mesh.current.rotation.x = Math.sin(phase.current * 0.4) * 0.05
+      mesh.current.rotation.y += delta * 0.18 * motion
+      mesh.current.rotation.x = Math.sin(phase.current * 0.3) * 0.04
 
-      // Punchy kick drum scale expansion
-      const pulse = 1.0 + beat * 0.16 + bass * 0.06
+      // Gentle, organic scale pulse
+      const pulse = 1.0 + beat * 0.10 + bass * 0.05
       mesh.current.scale.setScalar(scale * pulse)
     }
 
     if (material.current) {
-      // Gentle champagne sheen on beat impact (never blowing out)
-      const glow = 0.02 + beat * 0.25 + bass * 0.08
+      // Gentle champagne sheen on beat impact
+      const glow = 0.02 + beat * 0.20 + bass * 0.06
       material.current.emissiveIntensity = glow
-      material.current.roughness = Math.max(0.18, 0.26 - beat * 0.08)
+      material.current.roughness = Math.max(0.18, 0.26 - beat * 0.06)
     }
   })
 
