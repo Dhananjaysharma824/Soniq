@@ -1,10 +1,11 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { motion } from 'framer-motion'
 import MusicPlayer from '@/components/MusicPlayer/MusicPlayer'
+import QuickSearchModal from '@/components/QuickSearchModal'
 import Sculpture from '@/three/Sculpture'
 import Particles from '@/three/Particles'
 import AudioBridge from '@/three/AudioBridge'
@@ -48,6 +49,13 @@ export default function Home() {
   const queue = useStore((s) => s.queue)
   const isPlaying = useStore((s) => s.isPlaying)
   const togglePlay = useStore((s) => s.togglePlay)
+  const [showSearch, setShowSearch] = useState(false)
+
+  useEffect(() => {
+    const handleOpen = () => setShowSearch(true)
+    window.addEventListener('open-quick-search', handleOpen)
+    return () => window.removeEventListener('open-quick-search', handleOpen)
+  }, [])
 
   return (
     <div ref={container} className="relative bg-bg-primary">
@@ -86,10 +94,31 @@ export default function Home() {
             Where every beat creates a world. Music analyzed in real&nbsp;time, shaping a living 3D environment around you.
           </motion.p>
 
+          {/* Interactive Search Bar directly on Home Hero */}
+          <motion.div
+            {...fadeUp}
+            transition={{ duration: 0.8, delay: 0.48 }}
+            onClick={() => setShowSearch(true)}
+            className="pointer-events-auto mx-auto mt-6 flex w-full max-w-md items-center justify-between rounded-full border border-white/[0.14] bg-bg-secondary/75 px-4 py-2.5 backdrop-blur-xl shadow-2xl hover:border-champagne/60 hover:bg-bg-secondary/95 cursor-pointer transition-all group"
+          >
+            <div className="flex items-center gap-2.5 text-text-secondary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="group-hover:text-champagne transition-colors">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span className="font-sans text-xs sm:text-sm text-text-secondary/80 group-hover:text-text-primary transition-colors">
+                Search any song in 3D (e.g. Aankhein, Arijit)...
+              </span>
+            </div>
+            <span className="rounded-full bg-champagne/15 border border-champagne/30 px-2.5 py-0.5 font-mono text-[10px] text-champagne font-medium">
+              Search
+            </span>
+          </motion.div>
+
           <motion.div
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.55 }}
-            className="pointer-events-auto mt-10 flex flex-wrap items-center justify-center gap-3.5"
+            className="pointer-events-auto mt-6 flex flex-wrap items-center justify-center gap-3.5"
           >
             <Link
               to="/experience"
@@ -210,6 +239,7 @@ export default function Home() {
 
       <div className="h-24" />
       <MusicPlayer />
+      <QuickSearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} />
     </div>
   )
 }

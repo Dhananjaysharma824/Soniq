@@ -81,7 +81,7 @@ export default function Navbar() {
 
       {/* Right — Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {isExperience && (
+        {(isExperience || isHome) && (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-quick-search'))}
             className="flex items-center gap-1.5 rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 font-mono text-[11px] text-champagne hover:bg-champagne hover:text-bg-primary transition-all"

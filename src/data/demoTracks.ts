@@ -30,6 +30,16 @@ const BOLLYWOOD_BASE = 'https://raw.githubusercontent.com/wikivky/musicplayer/ma
 export const demoTracks: Track[] = [
   // ─── BOLLYWOOD & INDIAN HITS ───
   {
+    id: 'track-aankhein-navjot-ahuja',
+    title: 'Aankhein',
+    artist: 'Navjot Ahuja',
+    album: 'Aankhein',
+    duration: 315,
+    genre: 'Hindi Indie',
+    src: 'https://aac.saavncdn.com/663/77b8e7af19aa6db2d648793d496465e1_320.mp4',
+    artwork: 'https://c.saavncdn.com/663/Aankhein-Hindi-2026-20260915183240-500x500.jpg',
+  },
+  {
     id: 'track-kal-ho-na-ho',
     title: 'Kal Ho Naa Ho',
     artist: 'Sonu Nigam (Shankar-Ehsaan-Loy)',

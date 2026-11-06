@@ -158,19 +158,23 @@ const rawQueue: Track[] = Array.isArray(prefs.queue) ? prefs.queue : []
 const initialQueue: Track[] = rawQueue.filter(
   (t) => t && t.id && !DEMO_IDS.has(t.id) && !t.src?.includes('soundhelix.com') && !t.src?.includes('wikivky/musicplayer'),
 )
-const initialIndex: number =
-  typeof prefs.currentIndex === 'number' && prefs.currentIndex >= 0 && prefs.currentIndex < initialQueue.length
+
+const aankheinTrack = demoTracks.find((t) => t.id === 'track-aankhein-navjot-ahuja') || demoTracks[0]
+
+const effectiveQueue: Track[] = initialQueue.length > 0 ? initialQueue : (aankheinTrack ? [aankheinTrack] : [])
+const effectiveIndex: number =
+  typeof prefs.currentIndex === 'number' && prefs.currentIndex >= 0 && prefs.currentIndex < effectiveQueue.length
     ? prefs.currentIndex
-    : initialQueue.length > 0
+    : effectiveQueue.length > 0
       ? 0
       : -1
 
-const initialTrack = initialIndex >= 0 ? initialQueue[initialIndex] : null
+const initialTrack = effectiveIndex >= 0 ? effectiveQueue[effectiveIndex] : null
 
 export const useStore = create<MusicState>((set, get) => ({
   tracks: Object.values(initialSavedTracks),
-  queue: initialQueue,
-  currentIndex: initialIndex,
+  queue: effectiveQueue,
+  currentIndex: effectiveIndex,
   isPlaying: false,
   isBuffering: false,
   playbackError: null,
