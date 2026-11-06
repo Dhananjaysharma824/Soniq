@@ -48,25 +48,26 @@ export class AudioEngine {
 
   // Beat & Transient detection state
   private lastBeatTime = 0
-  private beatCooldown = 260 // ms - musical tempo cadence (prevents 10Hz buzzing/vibration)
-  private energyHistory: number[] = []
-  private historySize = 40
-  private adaptiveSensitivity = 1.25
-  private lastKick = 0
+  private beatCooldown = 180 // ms minimum between kick beats
+  private fastKick = 0
+  private slowKick = 0
+  private slowMid = 0
+  private peakBass = 0.12
+  private peakMid = 0.12
+  private peakTreble = 0.08
 
   // Smoothed perceptual frequency outputs
   private sBass = 0
   private sMid = 0
   private sTreble = 0
   private sAmp = 0
-  private lastEnergy = 0
 
   public analysis: AudioAnalysis = { ...defaultAnalysis }
   public isInitialized = false
 
   constructor(opts: AudioEngineOptions = {}) {
     this.fftSize = opts.fftSize ?? 2048
-    this.smoothing = opts.smoothing ?? 0.45
+    this.smoothing = opts.smoothing ?? 0.20
   }
 
   async init(element?: HTMLAudioElement): Promise<HTMLAudioElement> {
@@ -244,52 +245,64 @@ export class AudioEngine {
     const rawMid = this.averageRange(this.spectrumData, bassEnd, midEnd)
     const rawTreble = this.averageRange(this.spectrumData, midEnd, trebleEnd)
 
-    const perceivedBass = Math.min(1.0, rawBass * 1.35)
-    const perceivedMid = Math.min(1.0, rawMid * 1.45)
-    const perceivedTreble = Math.min(1.0, rawTreble * 1.65)
+    // Dynamic AGC / Adaptive Peak Normalization:
+    // Tracks current song volume envelope so quiet tracks (acoustic/vocals) and loud tracks (EDM)
+    // both get full, expressive 0.0 to 1.0 dynamic range!
+    this.peakBass = Math.max(0.06, Math.max(this.peakBass * 0.996, rawBass))
+    this.peakMid = Math.max(0.05, Math.max(this.peakMid * 0.996, rawMid))
+    this.peakTreble = Math.max(0.03, Math.max(this.peakTreble * 0.996, rawTreble))
+
+    const normBass = Math.min(1.0, rawBass / this.peakBass)
+    const normMid = Math.min(1.0, rawMid / this.peakMid)
+    const normTreble = Math.min(1.0, rawTreble / this.peakTreble)
 
     let sumSq = 0
     for (let i = 0; i < this.waveformData.length; i++) {
       const v = this.waveformData[i]
       sumSq += v * v
     }
-    const rawAmp = Math.min(1.0, Math.sqrt(sumSq / this.waveformData.length) * 1.3)
+    const rawAmp = Math.min(1.0, Math.sqrt(sumSq / this.waveformData.length) * 1.5)
 
-    // Fast, zero-lag attack with natural musical decay
-    const attack = 0.75
-    const decay = 0.22
-    this.sBass += (perceivedBass - this.sBass) * (perceivedBass > this.sBass ? attack : decay)
-    this.sMid += (perceivedMid - this.sMid) * (perceivedMid > this.sMid ? attack : decay)
-    this.sTreble += (perceivedTreble - this.sTreble) * (perceivedTreble > this.sTreble ? attack : decay)
+    // Fast, punchy response with natural musical decay
+    const attack = 0.90
+    const decay = 0.20
+    this.sBass += (normBass - this.sBass) * (normBass > this.sBass ? attack : decay)
+    this.sMid += (normMid - this.sMid) * (normMid > this.sMid ? attack : decay)
+    this.sTreble += (normTreble - this.sTreble) * (normTreble > this.sTreble ? attack : decay)
     this.sAmp += (rawAmp - this.sAmp) * (rawAmp > this.sAmp ? attack : decay)
 
-    // Kick drum onset detection (40Hz to 130Hz)
-    const kickEnd = Math.max(3, Math.floor(130 / binHz))
+    // Kick drum frequency band (35Hz to 135Hz)
+    const kickEnd = Math.max(3, Math.floor(135 / binHz))
     const rawKick = this.averageRange(this.spectrumData, 1, kickEnd)
-    const kickDelta = Math.max(0, rawKick - this.lastKick)
-    this.lastKick = rawKick
+    const normKick = Math.min(1.0, rawKick / this.peakBass)
 
-    this.energyHistory.push(rawKick)
-    if (this.energyHistory.length > 25) this.energyHistory.shift()
+    // Continuous transient pulse detection:
+    // Tracks instantaneous kick energy above smooth baseline (zero-lag physical audio sync)
+    this.fastKick = normKick
+    this.slowKick += (normKick - this.slowKick) * 0.08
+    const kickSurge = Math.max(0, this.fastKick - this.slowKick * 1.08)
+    const kickPunch = Math.min(1.0, kickSurge * 3.2)
 
-    let kickAvg = 0
-    for (let i = 0; i < this.energyHistory.length; i++) kickAvg += this.energyHistory[i]
-    kickAvg /= this.energyHistory.length || 1
+    // Mid transient pulse (snare, claps, vocal attacks)
+    this.slowMid += (normMid - this.slowMid) * 0.08
+    const midSurge = Math.max(0, normMid - this.slowMid * 1.12)
+    const midPunch = Math.min(1.0, midSurge * 2.0)
+
+    // Dynamic, continuous beat punch directly locked to the audio peaks
+    const instantPunch = Math.max(kickPunch, midPunch * 0.6)
+
+    // Smooth envelope: instantaneous punch rise, fast decay
+    if (instantPunch > this.analysis.beatStrength) {
+      this.analysis.beatStrength = instantPunch
+    } else {
+      this.analysis.beatStrength = Math.max(0, this.analysis.beatStrength * 0.85)
+    }
 
     const now = performance.now()
     let beat = false
-
-    // Real kick onset: sudden jump above recent baseline + substantial absolute volume
-    const isKickOnset = kickDelta > 0.08 && rawKick > kickAvg * 1.35 && rawKick > 0.18
-    const isHardPunch = kickDelta > 0.15 && rawKick > 0.22
-
-    if ((isKickOnset || isHardPunch) && now - this.lastBeatTime > this.beatCooldown) {
+    if (kickPunch > 0.35 && now - this.lastBeatTime > this.beatCooldown) {
       beat = true
-      this.analysis.beatStrength = 1.0
       this.lastBeatTime = now
-    } else {
-      this.analysis.beatStrength *= 0.82
-      if (this.analysis.beatStrength < 0.01) this.analysis.beatStrength = 0
     }
 
     this.analysis.bass = this.sBass
@@ -297,7 +310,7 @@ export class AudioEngine {
     this.analysis.treble = this.sTreble
     this.analysis.amplitude = this.sAmp
     this.analysis.beat = beat
-    this.analysis.energy = this.sBass * 0.75 + this.sMid * 0.25
+    this.analysis.energy = this.sBass * 0.70 + this.sMid * 0.30
 
     return this.analysis
   }
