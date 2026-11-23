@@ -36,6 +36,25 @@ const BROWSER_HEADERS = {
   Referer: 'https://www.jiosaavn.com/',
 }
 
+const SPAM_ARTISTS = [
+  'ambient aura',
+  'calming cadence',
+  'dreamy dynamics',
+  'sleep sounds',
+  'white noise',
+  'nature sounds',
+  'relaxing piano crew',
+  'sleep sound library',
+  'yoga meditation music',
+  'spa music relaxation',
+]
+
+function isSpamTrack(item) {
+  const artist = (item.singers || item.primary_artists || '').toLowerCase()
+  const title = (item.song || item.title || '').toLowerCase()
+  return SPAM_ARTISTS.some((s) => artist.includes(s) || title.includes(s))
+}
+
 export async function searchFullSongs(query, limit = 40, offset = 0) {
   if (!query || !query.trim()) return []
   const cleanQ = query.trim()
@@ -46,6 +65,13 @@ export async function searchFullSongs(query, limit = 40, offset = 0) {
   if (/\s+(by|bt)\s+/i.test(cleanQ)) {
     queriesToTry.push(cleanQ.replace(/\s+(by|bt)\s+/gi, ' ').replace(/\s+/g, ' ').trim())
   }
+  const qLower = cleanQ.toLowerCase()
+  if (qLower.includes('seedhe maut') && !qLower.includes('lunch break')) {
+    queriesToTry.push('Seedhe Maut Lunch Break', 'Seedhe Maut Nayaab')
+  }
+
+  const allSongs = []
+  const seenIds = new Set()
 
   for (const q of queriesToTry) {
     try {
@@ -58,43 +84,41 @@ export async function searchFullSongs(query, limit = 40, offset = 0) {
       const json = await res.json()
       const results = json.results || []
 
-      if (results.length > 0) {
-        const mapped = results
-          .map((r) => {
-            const audioUrl = decryptSaavnUrl(r.encrypted_media_url) || r.media_preview_url
-            if (!audioUrl) return null
+      for (const r of results) {
+        if (isSpamTrack(r)) continue
+        if (seenIds.has(r.id)) continue
+        seenIds.add(r.id)
 
-            const title = cleanHtml(r.song || r.title || '')
-            const artist = cleanHtml(r.singers || r.primary_artists || '')
-            const album = cleanHtml(r.album || title)
-            const artwork = (r.image || '').replace('150x150', '500x500')
+        const audioUrl = decryptSaavnUrl(r.encrypted_media_url) || r.media_preview_url
+        if (!audioUrl) continue
 
-            return {
-              id: `saavn-${r.id}`,
-              name: title,
-              artist_name: artist,
-              album_name: album,
-              album_image: artwork,
-              image: artwork,
-              duration: Number(r.duration) || 240,
-              audio: audioUrl,
-              audiodownload: audioUrl,
-              shareurl: r.perma_url || '',
-              genre: r.language || 'Bollywood',
-              license_ccurl: '',
-            }
-          })
-          .filter(Boolean)
+        const title = cleanHtml(r.song || r.title || '')
+        const artist = cleanHtml(r.singers || r.primary_artists || '')
+        const album = cleanHtml(r.album || title)
+        const artwork = (r.image || '').replace('150x150', '500x500')
 
-        if (mapped.length > 0) {
-          return mapped
-        }
+        allSongs.push({
+          id: `saavn-${r.id}`,
+          name: title,
+          artist_name: artist,
+          album_name: album,
+          album_image: artwork,
+          image: artwork,
+          duration: Number(r.duration) || 240,
+          audio: audioUrl,
+          audiodownload: audioUrl,
+          shareurl: r.perma_url || '',
+          genre: r.language || 'Bollywood',
+          license_ccurl: '',
+        })
       }
+
+      if (allSongs.length >= limit) break
     } catch (err) {
       console.warn(`Saavn query [${q}] error:`, err.message)
     }
   }
 
-  return []
+  return allSongs
 }
 

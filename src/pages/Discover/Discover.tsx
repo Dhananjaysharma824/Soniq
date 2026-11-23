@@ -14,6 +14,9 @@ import { demoTracks } from '@/data/demoTracks'
 
 const CATEGORIES = [
   { label: 'All Library', query: '' },
+  { label: '🔥 Seedhe Maut & DHH', query: 'Seedhe Maut' },
+  { label: '🎤 Atif Aslam Classics', query: 'Atif Aslam' },
+  { label: '⚡ KR$NA & Divine', query: 'KR$NA' },
   { label: '🔥 Trending Bollywood', query: 'Bollywood Top Hits 2024' },
   { label: '❤️ Arijit Singh Hits', query: 'Arijit Singh' },
   { label: '⚡ Punjabi & Desi Beats', query: 'Punjabi Top Hits' },
@@ -29,17 +32,19 @@ const CATEGORIES = [
 ]
 
 const QUICK_SUGGESTIONS = [
+  'Seedhe Maut',
+  'Atif Aslam',
+  'Aankhein',
+  'Lunch Break',
+  'KR$NA',
   'Arijit Singh',
+  'Talha Anjum',
   'Kal Ho Naa Ho',
   'Diljit Dosanjh',
   'Shreya Ghoshal',
   'Pritam',
   'Sidhu Moose Wala',
-  'A.R. Rahman',
   'Coke Studio',
-  'Hans Zimmer',
-  'The Weeknd',
-  'Dua Lipa',
 ]
 
 function mapJamendoTrack(jt: JamendoTrack): Track {

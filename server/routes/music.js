@@ -63,31 +63,58 @@ async function jamendoFetch(endpoint, params = {}) {
   return response.json()
 }
 
+function normalizeTitle(t) {
+  return (t || '')
+    .toLowerCase()
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim()
+}
+
 // GET /api/music/search?q=...&limit=...&offset=...
 router.get('/search', async (req, res) => {
   const { q, limit = 40, offset = 0 } = req.query
   if (!q) return res.status(400).json({ error: 'Query parameter "q" is required' })
 
-  // 1. Primary: Search Full-Length 320kbps Songs
-  try {
-    const fullSongs = await searchFullSongs(q, Number(limit) || 40, Number(offset) || 0)
-    if (fullSongs && fullSongs.length > 0) {
-      return res.json({
-        headers: { status: 'success', code: 0, results_count: fullSongs.length },
-        results: fullSongs,
-      })
+  const parsedLimit = Math.min(Number(limit) || 40, 100)
+  const parsedOffset = Number(offset) || 0
+
+  // Hybrid Search: Fetch JioSaavn (full 320kbps streams) and Apple iTunes catalog in parallel
+  const [saavnRes, itunesRes] = await Promise.allSettled([
+    searchFullSongs(q, parsedLimit, parsedOffset),
+    meldSearch(q, parsedLimit, parsedOffset),
+  ])
+
+  const saavnSongs = saavnRes.status === 'fulfilled' ? saavnRes.value || [] : []
+  const itunesSongs = itunesRes.status === 'fulfilled' ? itunesRes.value || [] : []
+
+  // Deduplicate and merge: Prioritize 320kbps Saavn streams, then append unique iTunes tracks
+  const merged = [...saavnSongs]
+  const seenTitles = new Set(saavnSongs.map((s) => normalizeTitle(s.name)))
+
+  for (const song of itunesSongs) {
+    const norm = normalizeTitle(song.name)
+    if (norm && !seenTitles.has(norm)) {
+      seenTitles.add(norm)
+      merged.push(song)
     }
-  } catch (err) {
-    console.warn('Full song search error, falling back:', err.message)
   }
 
-  // 2. Try Jamendo if client ID is configured
+  if (merged.length > 0) {
+    return res.json({
+      headers: { status: 'success', code: 0, results_count: merged.length },
+      results: merged.slice(0, parsedLimit),
+    })
+  }
+
+  // Fallback to Jamendo if client ID configured and no results
   if (getClientId()) {
     try {
       const data = await jamendoFetch('tracks', {
         search: q,
-        limit,
-        offset,
+        limit: parsedLimit,
+        offset: parsedOffset,
         include: 'musicinfo',
         imagesize: 600,
       })
@@ -99,17 +126,10 @@ router.get('/search', async (req, res) => {
     }
   }
 
-  // 3. Fall back to Meld search engine
-  try {
-    const meldResults = await meldSearch(q, Number(limit) || 40, Number(offset) || 0)
-    res.json({
-      headers: { status: 'success', code: 0, results_count: meldResults.length },
-      results: meldResults,
-    })
-  } catch (err) {
-    console.error('Music search error:', err.message)
-    res.status(500).json({ error: 'Failed to search tracks' })
-  }
+  res.json({
+    headers: { status: 'success', code: 0, results_count: 0 },
+    results: [],
+  })
 })
 
 // GET /api/music/popular?limit=...&offset=...&order=...
