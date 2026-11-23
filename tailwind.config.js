@@ -17,9 +17,9 @@ export default {
         champagne: '#C5A875',
       },
       fontFamily: {
-        display: ['"General Sans"', 'system-ui', 'sans-serif'],
-        sans: ['Satoshi', 'system-ui', 'sans-serif'],
-        mono: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Outfit"', '"General Sans"', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Satoshi', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'Inter', 'monospace'],
       },
       letterSpacing: {
         tighter: '-0.03em',

@@ -68,6 +68,15 @@ function fmtTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+const FEATURED_ARTISTS = [
+  { name: 'Seedhe Maut', role: 'DHH Icons', query: 'Seedhe Maut', image: 'https://c.saavncdn.com/745/Lunch-Break-Hindi-2023-20250315143227-500x500.jpg' },
+  { name: 'Atif Aslam', role: 'Vocal Maestro', query: 'Atif Aslam', image: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/38/44/21/384421ca-69a0-83f2-0a34-88653d45db97/8901854001385.jpg/600x600bb.jpg' },
+  { name: 'KR$NA', role: 'Desi Rap God', query: 'KR$NA', image: 'https://c.saavncdn.com/745/Lunch-Break-Hindi-2023-20250315143227-500x500.jpg' },
+  { name: 'Arijit Singh', role: 'King of Melody', query: 'Arijit Singh', image: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/43/fb/d8/43fbd870-9a3b-ccd9-8866-2a2c6dc48287/8901854003792.jpg/600x600bb.jpg' },
+  { name: 'Diljit Dosanjh', role: 'Punjabi Wave', query: 'Diljit Dosanjh', image: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/9d/4e/5a/9d4e5a11-1eb8-ae96-eb4b-cf01c89f583c/0602465590869.jpg/600x600bb.jpg' },
+  { name: 'Navjot Ahuja', role: 'Indie Aankhein', query: 'Navjot Ahuja', image: 'https://c.saavncdn.com/663/Aankhein-Hindi-2026-20260915183240-500x500.jpg' },
+]
+
 export default function Discover() {
   const navigate = useNavigate()
   const queue = useStore((s) => s.queue)
@@ -222,19 +231,53 @@ export default function Discover() {
     <div className="min-h-screen bg-bg-primary pb-32">
       <main className="mx-auto max-w-7xl px-6 pt-20 sm:pt-24 pb-12 md:px-10">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-champagne animate-pulse" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-champagne">
-              Global & Indian Music Vault • 1,000,000+ Tracks
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-champagne animate-pulse" />
+              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-champagne">
+                Free High-Fidelity Music Vault • 1,000,000+ Tracks
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] px-3 py-1 text-[11px] font-mono text-text-secondary">
+              <span className="text-champagne">✨</span>
+              <span>100% Free • No Subscription</span>
+            </div>
           </div>
-          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight md:text-5xl text-text-primary">
-            Search & Discover Music
+          <h1 className="mt-2 font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-text-primary">
+            {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}
           </h1>
-          <p className="mt-2 text-sm text-text-secondary max-w-2xl leading-relaxed">
-            Search across millions of Bollywood hits, Punjabi tracks, Indian classical ragas, and global electronic soundscapes with real-time audio-reactive 3D visualization.
+          <p className="mt-2 text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed">
+            Listen to full-length tracks from Seedhe Maut, Atif Aslam, KR$NA, Bollywood classics, and global hits in audio-reactive 3D.
           </p>
         </motion.div>
+
+        {/* Featured Artists Circular Spotlight */}
+        <section className="mt-6 -mx-2 px-2 overflow-x-auto scrollbar-none pb-2">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-max">
+            {FEATURED_ARTISTS.map((artist) => (
+              <button
+                key={artist.name}
+                onClick={() => {
+                  setSearchQuery(artist.query)
+                }}
+                className="group flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-white/[0.04] transition-all"
+              >
+                <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden border-2 border-white/[0.1] group-hover:border-champagne group-hover:scale-105 transition-all shadow-lg bg-surface">
+                  <img src={artist.image} alt={artist.name} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                </div>
+                <div className="text-center">
+                  <span className="block font-display text-xs font-bold text-text-primary group-hover:text-champagne transition-colors">
+                    {artist.name}
+                  </span>
+                  <span className="block font-mono text-[10px] text-text-secondary/70">
+                    {artist.role}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Sticky Search & Category Header */}
         <div className="sticky top-[56px] sm:top-[62px] z-30 -mx-6 px-6 sm:-mx-10 sm:px-10 py-3 mt-6 bg-bg-primary/95 backdrop-blur-2xl border-b border-white/[0.06] shadow-md transition-all">
@@ -328,6 +371,41 @@ export default function Discover() {
             })}
           </div>
         </div>
+
+        {/* Spotify-Style Vibe & Station Quick Cards */}
+        {!searchQuery && (
+          <section className="mt-8">
+            <h2 className="font-display text-sm font-bold uppercase tracking-wider text-text-secondary/70 mb-3">
+              Popular Stations & Mixes
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { title: 'Seedhe Maut & DHH', query: 'Seedhe Maut', bg: 'from-amber-600/30 to-red-950/40 border-amber-500/20', icon: '🔥' },
+                { title: 'Atif Aslam Classics', query: 'Atif Aslam', bg: 'from-indigo-600/30 to-blue-950/40 border-indigo-500/20', icon: '🎤' },
+                { title: 'Arijit & Romance', query: 'Arijit Singh', bg: 'from-rose-600/30 to-pink-950/40 border-rose-500/20', icon: '❤️' },
+                { title: 'Punjabi Desi Beats', query: 'Punjabi Top Hits', bg: 'from-orange-600/30 to-amber-950/40 border-orange-500/20', icon: '⚡' },
+                { title: 'Late Night Sufi', query: 'Sufi Ghazal', bg: 'from-teal-600/30 to-cyan-950/40 border-teal-500/20', icon: '🌙' },
+                { title: '3D Synthwave Beats', query: 'Synthwave', bg: 'from-purple-600/30 to-fuchsia-950/40 border-purple-500/20', icon: '🌌' },
+              ].map((vibe) => (
+                <button
+                  key={vibe.title}
+                  onClick={() => setSearchQuery(vibe.query)}
+                  className={`group relative flex flex-col justify-between p-3.5 rounded-2xl bg-gradient-to-br ${vibe.bg} border text-left hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden h-24`}
+                >
+                  <span className="font-display text-xs font-bold text-text-primary group-hover:text-champagne transition-colors leading-tight">
+                    {vibe.title}
+                  </span>
+                  <div className="flex items-center justify-between text-lg">
+                    <span>{vibe.icon}</span>
+                    <span className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      ▶
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Featured Spotlight Grid (Top Trending Picks) */}
         {!searchQuery && displayedTracks.length >= 4 && (

@@ -5,6 +5,9 @@ import { useStore, type Track } from '@/store/useStore'
 import { audioEngine } from '@/audio/AudioEngine'
 import AddToPlaylistModal from '@/components/AddToPlaylistModal'
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal'
+import LyricsModal from '@/components/LyricsModal'
+import EqualizerModal from '@/components/EqualizerModal'
+import NowPlayingModal from '@/components/NowPlayingModal'
 
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) return '0:00'
@@ -25,6 +28,9 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekVal, setSeekVal] = useState(0)
   const [playlistModalTrack, setPlaylistModalTrack] = useState<Track | null>(null)
+  const [showLyricsModal, setShowLyricsModal] = useState(false)
+  const [showEqModal, setShowEqModal] = useState(false)
+  const [showNowPlaying, setShowNowPlaying] = useState(false)
 
   const queue = useStore((s) => s.queue)
   const currentIndex = useStore((s) => s.currentIndex)
@@ -375,7 +381,10 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
         <div className="flex md:hidden items-center justify-between gap-3 px-4 py-3 sm:py-3.5">
           {/* Left: Thumbnail & Song Details */}
           <div
-            onClick={() => navigate('/experience')}
+            onClick={() => {
+              if (track) setShowNowPlaying(true)
+              else navigate('/experience')
+            }}
             className="flex min-w-0 flex-1 items-center gap-3 cursor-pointer"
           >
             <div className="relative w-12 h-12 sm:w-14 sm:h-14 min-w-[48px] min-h-[48px] max-w-[56px] max-h-[56px] flex-shrink-0 overflow-hidden rounded-xl bg-surface border border-white/[0.1] shadow-lg">
@@ -411,6 +420,20 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
 
           {/* Right: Touch Controls on Mobile */}
           <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+            {track && (
+              <button
+                onClick={() => setShowLyricsModal(true)}
+                className="p-2 text-text-secondary hover:text-champagne active:scale-90 transition-transform rounded-lg flex-shrink-0"
+                title="View Live Synced Lyrics"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                </svg>
+              </button>
+            )}
+
             {track && (
               <button
                 onClick={() => toggleFavourite(track.id, track)}
@@ -779,6 +802,52 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
               </svg>
             </button>
 
+            {/* Live Lyrics Button */}
+            <button
+              onClick={() => setShowLyricsModal(true)}
+              className={clsx(
+                'rounded-lg p-1.5 transition-colors',
+                showLyricsModal ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-champagne hover:bg-white/[0.06]',
+              )}
+              title="Lyrics (Karaoke Synced)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+              </svg>
+            </button>
+
+            {/* Studio Equalizer Button */}
+            <button
+              onClick={() => setShowEqModal(true)}
+              className={clsx(
+                'rounded-lg p-1.5 transition-colors',
+                showEqModal ? 'text-champagne bg-white/[0.08]' : 'text-text-secondary hover:text-champagne hover:bg-white/[0.06]',
+              )}
+              title="Studio Audio Equalizer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+              </svg>
+            </button>
+
+            {/* Fullscreen Player Mode */}
+            <button
+              onClick={() => setShowNowPlaying(true)}
+              className="rounded-lg p-1.5 text-text-secondary hover:text-champagne hover:bg-white/[0.06] transition-colors"
+              title="Expand Now Playing"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+            </button>
+
             {/* Queue Toggle Button */}
             <button
               onClick={() => setShowQueue((v) => !v)}
@@ -987,6 +1056,24 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
       <KeyboardShortcutsModal
         isOpen={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
+      />
+
+      <LyricsModal
+        isOpen={showLyricsModal}
+        onClose={() => setShowLyricsModal(false)}
+        track={track}
+      />
+
+      <EqualizerModal
+        isOpen={showEqModal}
+        onClose={() => setShowEqModal(false)}
+      />
+
+      <NowPlayingModal
+        isOpen={showNowPlaying}
+        onClose={() => setShowNowPlaying(false)}
+        track={track}
+        onOpenEq={() => setShowEqModal(true)}
       />
     </>
   )
