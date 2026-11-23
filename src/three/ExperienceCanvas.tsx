@@ -9,17 +9,15 @@ import Sculpture from './Sculpture'
 import Particles from './Particles'
 import CameraRig from './CameraRig'
 import SpaceWorld from '@/worlds/SpaceWorld'
-import OceanWorld from '@/worlds/OceanWorld'
-import DreamWorld from '@/worlds/DreamWorld'
 import TunnelWorld from '@/worlds/TunnelWorld'
 import { useStore, type WorldId } from '@/store/useStore'
 
 function World({ id }: { id: WorldId }) {
   switch (id) {
-    case 'space': return <SpaceWorld />
-    case 'ocean': return <OceanWorld />
-    case 'dream': return <DreamWorld />
     case 'tunnel': return <TunnelWorld />
+    case 'space':
+    default:
+      return <SpaceWorld />
   }
 }
 
@@ -36,7 +34,7 @@ export default function ExperienceCanvas() {
     }
   }, [settings.quality])
 
-  const particleColor = world === 'ocean' ? '#6ad0e8' : world === 'dream' ? '#c0a8e8' : world === 'tunnel' ? '#C5A77A' : '#9ab0d8'
+  const particleColor = world === 'tunnel' ? '#C5A77A' : '#9ab0d8'
   const showPost = settings.quality !== 'low'
 
   return (
@@ -56,7 +54,7 @@ export default function ExperienceCanvas() {
           <World id={world} />
           <Sculpture />
           <Particles color={particleColor} />
-          <Environment preset={world === 'ocean' ? 'city' : world === 'dream' ? 'dawn' : 'night'} environmentIntensity={0.35} />
+          <Environment preset="night" environmentIntensity={0.35} />
         </Suspense>
         {showPost && (
           <EffectComposer multisampling={0}>

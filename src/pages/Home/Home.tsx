@@ -204,8 +204,6 @@ export default function Home() {
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { id: 'space', name: 'Space', desc: 'Planets, orbits and star fields driven by frequency.', c: 'from-[#0a0e1a] to-[#141e30]' },
-              { id: 'ocean', name: 'Ocean', desc: 'Fluid surfaces, waves and depth.', c: 'from-[#040f16] to-[#0a2838]' },
-              { id: 'dream', name: 'Dream', desc: 'Glass sculptures and surreal forms.', c: 'from-[#0e0a16] to-[#221838]' },
               { id: 'tunnel', name: 'Tunnel', desc: 'Endless geometric tunnel pulsing to beat.', c: 'from-[#0a0b0e] to-[#181a20]' },
             ].map((w) => (
               <Link

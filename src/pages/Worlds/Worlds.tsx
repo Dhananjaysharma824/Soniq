@@ -12,20 +12,6 @@ const worlds: { id: WorldId; name: string; desc: string; detail: string; gradien
     gradient: 'from-[#070c18] via-[#0d162a] to-[#16233c]',
   },
   {
-    id: 'ocean',
-    name: 'Ocean',
-    desc: 'Fluid surfaces, wave deformations and deep marine light refraction.',
-    detail: 'Bass drives oceanic swells. Midrange audio triggers turbulent fluid distortions across 80x80 vertex planes. Highs lift bubbles toward the surface.',
-    gradient: 'from-[#021018] via-[#052230] to-[#0a384e]',
-  },
-  {
-    id: 'dream',
-    name: 'Dream',
-    desc: 'Translucent glass sculptures, surreal refraction and ethereal atmospheres.',
-    detail: 'Physical transmission glass materials with real-time IOR refraction. Bass alters structural scale. Mid frequencies twist organic knots. Beats pulse inner radiance.',
-    gradient: 'from-[#0c0818] via-[#180f2b] to-[#2c1c46]',
-  },
-  {
     id: 'tunnel',
     name: 'Tunnel',
     desc: 'Architectural geometric corridor pulsing through perspective depth.',

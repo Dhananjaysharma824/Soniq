@@ -10,7 +10,7 @@ const navLinks = [
   { to: '/library', label: 'Library' },
 ]
 
-const worldIds: WorldId[] = ['space', 'ocean', 'dream', 'tunnel']
+const worldIds: WorldId[] = ['space', 'tunnel']
 
 export default function Navbar() {
   const navigate = useNavigate()
