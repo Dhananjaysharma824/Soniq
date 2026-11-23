@@ -32,7 +32,7 @@ export interface Playlist {
   createdAt: number
 }
 
-export type WorldId = 'space' | 'tunnel'
+export type WorldId = 'space'
 export type QualityLevel = 'low' | 'medium' | 'high' | 'ultra'
 
 export interface VisualizerSettings {
@@ -213,7 +213,7 @@ export const useStore = create<MusicState>((set, get) => ({
       set({ sleepTimerRemaining: sleepTimerRemaining - 1 })
     }
   },
-  world: prefs.world === 'tunnel' ? 'tunnel' : 'space',
+  world: 'space',
   settings: { ...defaultSettings, ...(prefs.settings ?? {}) },
   analysisRef: null,
   setAnalysisRef: (ref) => set({ analysisRef: ref }),

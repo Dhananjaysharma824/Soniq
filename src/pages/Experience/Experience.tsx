@@ -55,8 +55,8 @@ export default function Experience() {
             Active Environment
           </div>
           <div className="flex items-center justify-between mt-1">
-            <div className="font-display text-sm font-medium capitalize text-text-primary">
-              {world} World
+            <div className="font-display text-sm font-medium text-text-primary">
+              Space Dimension
             </div>
             <button
               onClick={() => setShowSettings((v) => !v)}

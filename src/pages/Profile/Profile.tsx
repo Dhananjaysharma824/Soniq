@@ -144,25 +144,20 @@ export default function Profile() {
           {status && <p className="mt-4 text-xs font-mono text-champagne">{status}</p>}
         </section>
 
-        {/* Saved World */}
+        {/* Active Dimension */}
         <section className="mt-6 rounded-2xl border border-white/[0.06] bg-bg-secondary/40 p-6 md:p-8">
-          <h2 className="font-display text-lg font-medium text-text-primary">Default 3D Dimension</h2>
+          <h2 className="font-display text-lg font-medium text-text-primary">Active 3D Dimension</h2>
           <p className="mt-1 text-xs text-text-secondary">
-            Select the primary environment loaded when opening the Experience portal.
+            Primary 3D environment loaded in the Experience portal.
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
-            {(['space', 'ocean', 'dream', 'tunnel'] as WorldId[]).map((w) => (
+            {(['space'] as WorldId[]).map((w) => (
               <button
                 key={w}
                 onClick={() => setWorld(w)}
-                className={clsx(
-                  'rounded-full px-5 py-2 font-display text-xs font-medium capitalize tracking-wide transition-all',
-                  world === w
-                    ? 'bg-text-primary text-bg-primary shadow-lg'
-                    : 'border border-white/[0.08] bg-surface text-text-secondary hover:text-text-primary hover:border-white/20',
-                )}
+                className="rounded-full px-5 py-2 font-display text-xs font-semibold capitalize tracking-wide bg-text-primary text-bg-primary shadow-lg"
               >
-                {w}
+                Space Dimension (Grains Sphere)
               </button>
             ))}
           </div>

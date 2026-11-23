@@ -175,7 +175,7 @@ export default function Home() {
             {[
               { t: 'Real Audio Analysis', d: 'FFT spectrum and waveform from the Web Audio API.' },
               { t: 'Beat Detection', d: 'Adaptive transient detection drives pulses and motion.' },
-              { t: 'Four Worlds', d: 'Space, Ocean, Dream and Tunnel — each uniquely reactive.' },
+              { t: 'Space Dimension', d: 'Interactive audio-reactive grains sphere rotating to touch and beat.' },
               { t: 'Your Music', d: 'Upload tracks or discover music via Jamendo.' },
             ].map((c) => (
               <div
@@ -201,14 +201,13 @@ export default function Home() {
               View all →
             </Link>
           </div>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-3 sm:grid-cols-1 max-w-xl">
             {[
-              { id: 'space', name: 'Space', desc: 'Planets, orbits and star fields driven by frequency.', c: 'from-[#0a0e1a] to-[#141e30]' },
-              { id: 'tunnel', name: 'Tunnel', desc: 'Endless geometric tunnel pulsing to beat.', c: 'from-[#0a0b0e] to-[#181a20]' },
+              { id: 'space', name: 'Space Dimension', desc: 'Cosmic star field with interactive audio-reactive grains sphere.', c: 'from-[#0a0e1a] to-[#141e30]' },
             ].map((w) => (
               <Link
                 key={w.id}
-                to="/worlds"
+                to="/experience"
                 className={`group rounded-2xl border border-white/[0.04] bg-gradient-to-br ${w.c} p-6 transition-all duration-200 hover:border-white/[0.08] hover:scale-[1.01]`}
               >
                 <div className="font-display text-lg font-medium">{w.name}</div>

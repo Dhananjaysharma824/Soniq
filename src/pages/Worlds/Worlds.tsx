@@ -6,17 +6,10 @@ import { useStore, type WorldId } from '@/store/useStore'
 const worlds: { id: WorldId; name: string; desc: string; detail: string; gradient: string }[] = [
   {
     id: 'space',
-    name: 'Space',
-    desc: 'Deep universe, floating celestial bodies, orbital rings and cosmic starfields.',
-    detail: 'Sub-bass frequencies expand planetary geometry. Rhythmic transients pulse orbital rings with champagne emission. High frequencies vibrate the starfield density.',
+    name: 'Space Dimension',
+    desc: 'Deep universe, floating celestial bodies, orbital rings and interactive audio-reactive grains sphere.',
+    detail: 'Sub-bass frequencies expand planetary geometry. Rhythmic transients pulse orbital rings with champagne emission. Touch or drag to rotate the 3D grains sphere in real time.',
     gradient: 'from-[#070c18] via-[#0d162a] to-[#16233c]',
-  },
-  {
-    id: 'tunnel',
-    name: 'Tunnel',
-    desc: 'Architectural geometric corridor pulsing through perspective depth.',
-    detail: 'High-speed camera motion with perspective compression. Bass notes expand concentric structural portals. Beats trigger synchronized light waves down the z-axis.',
-    gradient: 'from-[#08090c] via-[#111318] to-[#1c1f26]',
   },
 ]
 

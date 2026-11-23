@@ -6,18 +6,13 @@ import { useStore, type WorldId } from '@/store/useStore'
 const navLinks = [
   { to: '/discover', label: 'Discover' },
   { to: '/experience', label: 'Experience' },
-  { to: '/worlds', label: 'Worlds' },
   { to: '/library', label: 'Library' },
 ]
-
-const worldIds: WorldId[] = ['space', 'tunnel']
 
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const isPlaying = useStore((s) => s.isPlaying)
-  const world = useStore((s) => s.world)
-  const setWorld = useStore((s) => s.setWorld)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isHome = location.pathname === '/'
@@ -35,47 +30,26 @@ export default function Navbar() {
         </span>
       </Link>
 
-      {/* Center — Navigation / World switcher (Perfect Centered Capsule) */}
-      <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto">
-        {isExperience ? (
-          /* World switcher pills on Experience page: Space & Tunnel */
-          <div className="flex items-center rounded-full bg-white/[0.08] p-1 border border-white/[0.12] backdrop-blur-2xl shadow-xl">
-            {worldIds.map((w) => (
-              <button
-                key={w}
-                onClick={() => setWorld(w)}
-                className={clsx(
-                  'rounded-full px-4 py-1 font-display text-xs font-semibold tracking-wide capitalize transition-all duration-200',
-                  world === w
-                    ? 'bg-text-primary text-bg-primary shadow-md'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
-                )}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-        ) : (
-          /* Standard nav links */
-          <div className="hidden md:flex items-center gap-1 rounded-full bg-white/[0.04] p-1 border border-white/[0.06] backdrop-blur-xl">
-            {navLinks.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                className={({ isActive }) =>
-                  clsx(
-                    'rounded-full px-4 py-1.5 font-sans text-[11px] font-medium tracking-wide transition-colors duration-200',
-                    isActive
-                      ? 'bg-white/[0.1] text-text-primary shadow-sm'
-                      : 'text-text-secondary hover:text-text-primary',
-                  )
-                }
-              >
-                {l.label}
-              </NavLink>
-            ))}
-          </div>
-        )}
+      {/* Center — Navigation Pill */}
+      <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center justify-center pointer-events-auto">
+        <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1 border border-white/[0.06] backdrop-blur-xl">
+          {navLinks.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              className={({ isActive }) =>
+                clsx(
+                  'rounded-full px-4 py-1.5 font-sans text-[11px] font-medium tracking-wide transition-colors duration-200',
+                  isActive
+                    ? 'bg-white/[0.1] text-text-primary shadow-sm font-semibold'
+                    : 'text-text-secondary hover:text-text-primary',
+                )
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {/* Right — Actions */}
@@ -121,40 +95,30 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="absolute left-0 right-0 top-full z-50 border-b border-white/[0.04] bg-bg-primary/95 backdrop-blur-xl md:hidden">
           <nav className="flex flex-col px-5 py-4 gap-1">
-            {isExperience ? (
-              worldIds.map((w) => (
-                <button
-                  key={w}
-                  onClick={() => { setWorld(w); setMobileOpen(false) }}
-                  className={clsx(
-                    'rounded-lg px-3 py-2.5 text-left font-sans text-sm capitalize transition-colors',
-                    world === w ? 'text-text-primary bg-white/[0.04]' : 'text-text-secondary',
-                  )}
-                >
-                  {w}
-                </button>
-              ))
-            ) : (
-              navLinks.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    clsx(
-                      'rounded-lg px-3 py-2.5 font-sans text-sm transition-colors',
-                      isActive ? 'text-text-primary bg-white/[0.04]' : 'text-text-secondary',
-                    )
-                  }
-                >
-                  {l.label}
-                </NavLink>
-              ))
-            )}
+            {navLinks.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  clsx(
+                    'rounded-lg px-3 py-2.5 font-sans text-sm transition-colors',
+                    isActive ? 'text-text-primary bg-white/[0.04] font-medium' : 'text-text-secondary',
+                  )
+                }
+              >
+                {l.label}
+              </NavLink>
+            ))}
             <NavLink
               to="/profile"
               onClick={() => setMobileOpen(false)}
-              className="rounded-lg px-3 py-2.5 font-sans text-sm text-text-secondary transition-colors"
+              className={({ isActive }) =>
+                clsx(
+                  'rounded-lg px-3 py-2.5 font-sans text-sm transition-colors',
+                  isActive ? 'text-text-primary bg-white/[0.04] font-medium' : 'text-text-secondary',
+                )
+              }
             >
               Profile
             </NavLink>

@@ -9,20 +9,9 @@ import Sculpture from './Sculpture'
 import Particles from './Particles'
 import CameraRig from './CameraRig'
 import SpaceWorld from '@/worlds/SpaceWorld'
-import TunnelWorld from '@/worlds/TunnelWorld'
-import { useStore, type WorldId } from '@/store/useStore'
-
-function World({ id }: { id: WorldId }) {
-  switch (id) {
-    case 'tunnel': return <TunnelWorld />
-    case 'space':
-    default:
-      return <SpaceWorld />
-  }
-}
+import { useStore } from '@/store/useStore'
 
 export default function ExperienceCanvas() {
-  const world = useStore((s) => s.world)
   const settings = useStore((s) => s.settings)
 
   const dpr: [number, number] = useMemo(() => {
@@ -34,7 +23,6 @@ export default function ExperienceCanvas() {
     }
   }, [settings.quality])
 
-  const particleColor = world === 'tunnel' ? '#C5A77A' : '#9ab0d8'
   const showPost = settings.quality !== 'low'
 
   return (
@@ -51,9 +39,9 @@ export default function ExperienceCanvas() {
         <AudioBridge />
         <CameraRig />
         <Suspense fallback={null}>
-          <World id={world} />
+          <SpaceWorld />
           <Sculpture />
-          <Particles color={particleColor} />
+          <Particles color="#9ab0d8" />
           <Environment preset="night" environmentIntensity={0.35} />
         </Suspense>
         {showPost && (

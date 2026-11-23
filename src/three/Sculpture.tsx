@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { audioEngine } from '@/audio/AudioEngine'
@@ -155,13 +155,71 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const settings = useStore((s) => s.settings)
   const { size, viewport } = useThree()
 
+  // Interactive touch and mouse drag rotation state
+  const isDragging = useRef(false)
+  const lastPointer = useRef({ x: 0, y: 0 })
+  const rotationEuler = useRef({ x: 0, y: 0 })
+  const rotationVelocity = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      // Ignore if user tapped on interactive UI buttons, links, search, or player
+      const target = e.target as HTMLElement | null
+      if (
+        target?.closest('button, input, select, textarea, a, nav, [role="button"], .pointer-events-auto, [data-interactive="true"]')
+      ) {
+        return
+      }
+
+      isDragging.current = true
+      lastPointer.current = { x: e.clientX, y: e.clientY }
+      rotationVelocity.current = { x: 0, y: 0 }
+    }
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragging.current) return
+
+      const dx = e.clientX - lastPointer.current.x
+      const dy = e.clientY - lastPointer.current.y
+      lastPointer.current = { x: e.clientX, y: e.clientY }
+
+      // Smooth gesture sensitivity
+      const sensitivity = 0.0055
+
+      // Y-axis (horizontal drag rotates sphere sideways)
+      rotationVelocity.current.y = dx * sensitivity
+      // X-axis (vertical drag rotates sphere up/down)
+      rotationVelocity.current.x = dy * sensitivity
+
+      rotationEuler.current.y += rotationVelocity.current.y
+      rotationEuler.current.x += rotationVelocity.current.x
+      rotationEuler.current.x = Math.max(-1.3, Math.min(1.3, rotationEuler.current.x))
+    }
+
+    const handlePointerUp = () => {
+      isDragging.current = false
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true })
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerup', handlePointerUp, { passive: true })
+    window.addEventListener('pointercancel', handlePointerUp, { passive: true })
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+    }
+  }, [])
+
   // Responsive scale adapted to viewport
   const responsiveScale = useMemo(() => {
     if (size.width < 480 || viewport.aspect < 0.65) {
-      return scale * 0.62
+      return scale * 0.68
     }
     if (size.width < 640 || viewport.aspect < 0.85) {
-      return scale * 0.74
+      return scale * 0.76
     }
     if (size.width < 768 || viewport.aspect < 1.0) {
       return scale * 0.84
@@ -171,6 +229,14 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     }
     return scale
   }, [size.width, viewport.aspect, scale])
+
+  // Responsive position: lift slightly on mobile screens so it clears the bottom player bar
+  const responsivePosition = useMemo((): [number, number, number] => {
+    if (size.width < 640 || viewport.aspect < 0.75) {
+      return [position[0], position[1] + 0.28, position[2]]
+    }
+    return position
+  }, [size.width, viewport.aspect, position])
 
   const smoothedBass = useRef(0)
   const smoothedBeat = useRef(0)
@@ -271,9 +337,23 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     uniforms.uBeat.value = smoothedBeat.current
     uniforms.uDeform.value = s.deformation
 
+    // 7. Interactive touch/cursor rotation with momentum & inertia decay
+    if (!isDragging.current) {
+      rotationEuler.current.y += rotationVelocity.current.y
+      rotationEuler.current.x += rotationVelocity.current.x
+      rotationVelocity.current.y *= 0.94
+      rotationVelocity.current.x *= 0.94
+
+      // Gentle continuous ambient cosmic rotation when not dragging
+      rotationEuler.current.y += delta * 0.12 * motion
+    }
+
+    // Clamp pitch
+    rotationEuler.current.x = Math.max(-1.3, Math.min(1.3, rotationEuler.current.x))
+
     if (pointsRef.current) {
-      pointsRef.current.rotation.y += delta * 0.15 * motion
-      pointsRef.current.rotation.x = Math.sin(uniforms.uTime.value * 0.22) * 0.04
+      pointsRef.current.rotation.y = rotationEuler.current.y
+      pointsRef.current.rotation.x = rotationEuler.current.x
 
       // Punchy sphere scale expansion on beat
       const pulse = 1.0 + smoothedBeat.current * 0.16 + smoothedBass.current * 0.07
@@ -282,7 +362,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   })
 
   return (
-    <points ref={pointsRef} position={position}>
+    <points ref={pointsRef} position={responsivePosition}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
