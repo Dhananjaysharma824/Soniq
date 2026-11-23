@@ -63,54 +63,60 @@ export default function Home() {
       <section className="relative flex h-[100vh] items-center justify-center overflow-hidden">
         <HeroCanvas />
 
-        {/* Gradient overlays */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg-primary/30 via-transparent to-bg-primary" />
+        {/* Gradient overlays with subtle radial vignette for crisp text contrast */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg-primary/50 via-bg-primary/20 to-bg-primary" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,9,9,0.55)_0%,transparent_75%)]" />
 
         {/* Hero content */}
         <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
-          <motion.p
+          <motion.div
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="mb-5 font-sans text-[10px] font-medium uppercase tracking-[0.3em] text-text-secondary"
+            className="mb-5 inline-block"
           >
-            A new dimension of music
-          </motion.p>
+            <span className="rounded-full bg-black/60 border border-champagne/35 px-4 py-1.5 font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-champagne backdrop-blur-xl shadow-lg">
+              A new dimension of music
+            </span>
+          </motion.div>
 
           <motion.h1
             {...fadeUp}
             transition={{ duration: 0.9, delay: 0.25 }}
-            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-text-primary leading-[0.95]"
+            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-text-primary leading-[0.95] drop-shadow-[0_6px_30px_rgba(0,0,0,0.95)]"
           >
             ENTER THE
             <br />
-            <span className="text-silver">FREQUENCY.</span>
+            <span className="text-silver drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">FREQUENCY.</span>
           </motion.h1>
 
-          <motion.p
+          {/* Subtitle with high-contrast frosted glass plate for 100% crystal clear readability */}
+          <motion.div
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="mx-auto mt-7 max-w-lg font-sans text-[15px] leading-relaxed text-text-secondary"
+            className="mx-auto mt-6 max-w-xl"
           >
-            Where every beat creates a world. Music analyzed in real&nbsp;time, shaping a living 3D environment around you.
-          </motion.p>
+            <p className="inline-block rounded-2xl bg-black/70 border border-white/[0.12] px-6 py-3 backdrop-blur-2xl shadow-2xl font-sans text-[14px] sm:text-[15px] font-medium leading-relaxed text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
+              Where every beat creates a world. Music analyzed in real&nbsp;time, shaping a living 3D environment around you.
+            </p>
+          </motion.div>
 
           {/* Interactive Search Bar directly on Home Hero */}
           <motion.div
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.48 }}
             onClick={() => setShowSearch(true)}
-            className="pointer-events-auto mx-auto mt-6 flex w-full max-w-md items-center justify-between rounded-full border border-white/[0.14] bg-bg-secondary/75 px-4 py-2.5 backdrop-blur-xl shadow-2xl hover:border-champagne/60 hover:bg-bg-secondary/95 cursor-pointer transition-all group"
+            className="pointer-events-auto mx-auto mt-6 flex w-full max-w-md items-center justify-between rounded-full border border-white/[0.18] bg-black/80 px-4 py-2.5 backdrop-blur-2xl shadow-2xl hover:border-champagne/70 hover:bg-black/95 cursor-pointer transition-all group"
           >
             <div className="flex items-center gap-2.5 text-text-secondary">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="group-hover:text-champagne transition-colors">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <span className="font-sans text-xs sm:text-sm text-text-secondary/80 group-hover:text-text-primary transition-colors">
+              <span className="font-sans text-xs sm:text-sm text-text-secondary/90 group-hover:text-white transition-colors">
                 Search any song in 3D (e.g. Aankhein, Arijit)...
               </span>
             </div>
-            <span className="rounded-full bg-champagne/15 border border-champagne/30 px-2.5 py-0.5 font-mono text-[10px] text-champagne font-medium">
+            <span className="rounded-full bg-champagne/20 border border-champagne/40 px-2.5 py-0.5 font-mono text-[10px] text-champagne font-semibold">
               Search
             </span>
           </motion.div>
@@ -126,15 +132,15 @@ export default function Home() {
                 if (!isPlaying && queue.length) useStore.getState().playTrack(0)
                 else togglePlay()
               }}
-              className="rounded-full bg-text-primary px-7 py-3 font-display text-[12px] font-semibold tracking-wide text-bg-primary transition-all duration-200 hover:bg-white hover:scale-[1.02]"
+              className="rounded-full bg-text-primary px-7 py-3 font-display text-[12px] font-semibold tracking-wide text-bg-primary transition-all duration-200 hover:bg-white hover:scale-[1.02] shadow-xl"
             >
               ENTER EXPERIENCE
             </Link>
             <Link
-              to="/worlds"
-              className="rounded-full border border-white/[0.12] px-7 py-3 font-display text-[12px] font-semibold tracking-wide text-text-primary transition-all duration-200 hover:border-white/25 hover:bg-white/[0.03]"
+              to="/discover"
+              className="rounded-full border border-white/[0.16] bg-black/50 backdrop-blur-md px-7 py-3 font-display text-[12px] font-semibold tracking-wide text-text-primary transition-all duration-200 hover:border-white/35 hover:bg-white/[0.08]"
             >
-              EXPLORE WORLDS
+              DISCOVER MUSIC
             </Link>
           </motion.div>
         </div>
