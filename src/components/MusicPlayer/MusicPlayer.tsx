@@ -661,38 +661,79 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
               </button>
             </div>
 
-            {/* Seek Bar */}
+            {/* Seek Bar with Colored Played Track */}
             <div className="flex w-full items-center gap-2.5 text-[10px] font-mono tabular-nums text-text-secondary">
-              <span className="w-8 text-right">
+              <span className="w-8 text-right select-none">
                 {fmt(isSeeking ? seekVal : currentTime)}
               </span>
-              <input
-                type="range"
-                min={0}
-                max={duration > 0 ? duration : (track?.duration || 180)}
-                step={0.1}
-                value={Math.min(
-                  isSeeking ? seekVal : currentTime,
-                  duration > 0 ? duration : (track?.duration || 180),
-                )}
-                onPointerDown={() => {
-                  setIsSeeking(true)
-                  setSeekVal(currentTime)
-                }}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  setSeekVal(val)
-                  if (!isSeeking) seek(val)
-                }}
-                onPointerUp={(e) => {
-                  const val = Number((e.target as HTMLInputElement).value)
-                  seek(val)
-                  setIsSeeking(false)
-                }}
-                className="flex-1"
-                aria-label="Seek time"
-              />
-              <span className="w-8">{fmt(duration > 0 ? duration : (track?.duration || 0))}</span>
+
+              {/* Dynamic Styled Range Bar (Jitna music play ho jaye utna colored) */}
+              <div className="group relative flex-1 h-5 flex items-center cursor-pointer">
+                {/* Background track (unplayed dark track) */}
+                <div className="w-full h-1 group-hover:h-1.5 rounded-full bg-white/[0.15] transition-all overflow-hidden relative">
+                  {/* Colored Played Track */}
+                  <div
+                    className="h-full rounded-full bg-champagne group-hover:bg-[#dfc493] transition-all shadow-[0_0_10px_rgba(197,168,117,0.5)]"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(
+                          0,
+                          ((isSeeking ? seekVal : currentTime) /
+                            (duration > 0 ? duration : (track?.duration || 180))) *
+                            100,
+                        ),
+                      )}%`,
+                    }}
+                  />
+                </div>
+
+                {/* Scrubber Thumb Knob */}
+                <div
+                  className="pointer-events-none absolute h-3 w-3 rounded-full bg-text-primary border-2 border-bg-primary shadow-lg -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    left: `${Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        ((isSeeking ? seekVal : currentTime) /
+                          (duration > 0 ? duration : (track?.duration || 180))) *
+                          100,
+                      ),
+                    )}%`,
+                  }}
+                />
+
+                {/* Interactive range input */}
+                <input
+                  type="range"
+                  min={0}
+                  max={duration > 0 ? duration : (track?.duration || 180)}
+                  step={0.1}
+                  value={Math.min(
+                    isSeeking ? seekVal : currentTime,
+                    duration > 0 ? duration : (track?.duration || 180),
+                  )}
+                  onPointerDown={() => {
+                    setIsSeeking(true)
+                    setSeekVal(currentTime)
+                  }}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    setSeekVal(val)
+                    if (!isSeeking) seek(val)
+                  }}
+                  onPointerUp={(e) => {
+                    const val = Number((e.target as HTMLInputElement).value)
+                    seek(val)
+                    setIsSeeking(false)
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  aria-label="Seek time"
+                />
+              </div>
+
+              <span className="w-8 select-none">{fmt(duration > 0 ? duration : (track?.duration || 0))}</span>
             </div>
           </div>
 
@@ -766,7 +807,13 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                 )}
               </button>
 
-              <div className="relative group/vol flex items-center">
+              <div className="relative group/vol flex items-center w-16 sm:w-20 hidden sm:flex h-5 cursor-pointer">
+                <div className="w-full h-1 group-hover/vol:h-1.5 rounded-full bg-white/[0.15] transition-all overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full bg-champagne transition-all"
+                    style={{ width: `${Math.min(100, Math.max(0, (muted ? 0 : volume) * 100))}%` }}
+                  />
+                </div>
                 <input
                   type="range"
                   min={0}
@@ -774,7 +821,7 @@ export default function MusicPlayer({ compact = false }: { compact?: boolean }) 
                   step={0.01}
                   value={muted ? 0 : volume}
                   onChange={(e) => setVolume(Number(e.target.value))}
-                  className="w-16 sm:w-20 hidden sm:block"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   aria-label="Volume level"
                 />
                 <span className="hidden group-hover/vol:block absolute -top-7 left-1/2 -translate-x-1/2 rounded bg-surface border border-white/[0.1] px-1.5 py-0.5 text-[9px] font-mono text-champagne shadow-md pointer-events-none">

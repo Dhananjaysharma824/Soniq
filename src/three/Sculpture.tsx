@@ -106,11 +106,11 @@ const grainVertexShader = `
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // 6. Distinct Sand Grain Point Sizing (Crisp granular separation, NOT a solid opaque wall!)
+    // 6. Ultra-Fine Sand Grain Point Sizing (Delicate, thin micro-particles; NOT thick chunky dots!)
     float dispFactor = clamp(totalDisp * 1.4, 0.0, 1.0);
-    float pSize = aSize * (2.8 + dispFactor * 2.4 + uBeat * 1.8);
-    gl_PointSize = (pSize * uPixelRatio * 125.0) / -mvPosition.z;
-    gl_PointSize = clamp(gl_PointSize, 1.4, 7.0);
+    float pSize = aSize * (1.1 + dispFactor * 0.9 + uBeat * 0.6);
+    gl_PointSize = (pSize * uPixelRatio * 75.0) / -mvPosition.z;
+    gl_PointSize = clamp(gl_PointSize, 0.8, 3.2);
 
     // 7. Rich Cosmic Sand Palette (Deep Bronze Body, Warm Golden Amber Grains, Incandescent Ivory Spikes)
     vec3 deepBronze = vec3(0.24, 0.16, 0.08);
@@ -132,17 +132,17 @@ const grainFragmentShader = `
   varying float vDisplacement;
 
   void main() {
-    // Sharp circular sand grain point sprite
+    // Sharp circular micro-sand grain point sprite
     vec2 coord = gl_PointCoord - vec2(0.5);
     float distSq = dot(coord, coord);
     if (distSq > 0.25) discard;
 
-    // Crisp falloff so grains retain particle identity and don't blur into opaque soup
-    float radial = smoothstep(0.25, 0.06, distSq);
+    // Crisp falloff so fine grains sparkle sharply without blooming into blur
+    float radial = smoothstep(0.25, 0.04, distSq);
 
-    // Glistening grain nucleus
-    float core = smoothstep(0.08, 0.0, distSq) * (0.35 + clamp(vDisplacement * 0.5, 0.0, 0.65));
-    vec3 finalColor = vColor + vec3(core * 0.45);
+    // Delicate pinpoint glimmer core
+    float core = smoothstep(0.06, 0.0, distSq) * (0.30 + clamp(vDisplacement * 0.4, 0.0, 0.5));
+    vec3 finalColor = vColor + vec3(core * 0.35);
 
     gl_FragColor = vec4(finalColor, radial * vAlpha);
   }
@@ -241,22 +241,22 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const smoothedMid = useRef(0)
   const smoothedTreble = useRef(0)
 
-  // Grain density calibrated for crisp granular visibility (distinct particles, no solid white wall)
+  // Grain density calibrated for fine, thin micro-particles (delicate stardust sand)
   const grainCount = useMemo(() => {
     switch (settings.quality) {
       case 'ultra':
-        return 22000
+        return 34000
       case 'high':
-        return 16000
+        return 26000
       case 'medium':
-        return 12000
+        return 18000
       case 'low':
       default:
-        return 8000
+        return 12000
     }
   }, [settings.quality])
 
-  // Golden ratio Fibonacci distribution with volumetric grain depth
+  // Golden ratio Fibonacci distribution with fine volumetric grain depth
   const [positions, normals, sizes, randoms] = useMemo(() => {
     const pos = new Float32Array(grainCount * 3)
     const norm = new Float32Array(grainCount * 3)
@@ -274,8 +274,8 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       const ny = Math.sin(theta) * Math.sin(phi)
       const nz = Math.cos(phi)
 
-      // Volumetric grain thickness so particles have palpable 3D depth
-      const shellThickness = (Math.random() - 0.5) * 0.10
+      // Fine volumetric grain thickness for delicate 3D particle depth
+      const shellThickness = (Math.random() - 0.5) * 0.08
       const r = baseRadius * (1.0 + shellThickness)
 
       pos[i * 3] = nx * r
@@ -286,8 +286,9 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       norm[i * 3 + 1] = ny
       norm[i * 3 + 2] = nz
 
+      // Thin, fine micro-grain particle sizing
       const isGlitter = Math.random() < 0.16
-      sz[i] = isGlitter ? 1.6 + Math.random() * 0.8 : 0.75 + Math.random() * 0.5
+      sz[i] = isGlitter ? 0.70 + Math.random() * 0.35 : 0.38 + Math.random() * 0.28
       rnd[i] = Math.random()
     }
 
