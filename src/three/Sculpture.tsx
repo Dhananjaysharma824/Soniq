@@ -20,7 +20,7 @@ const grainVertexShader = `
 
   varying vec3 vColor;
   varying float vAlpha;
-  varying float vDist;
+  varying float vSpike;
 
   // 3D Simplex noise
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -75,79 +75,78 @@ const grainVertexShader = `
     vec3 pos = position;
     vec3 norm = normalize(aNormal);
 
-    // Multi-frequency directional ridge noise for sharp spikes
-    float n1 = snoise(norm * 4.2 + vec3(uTime * 0.18));
-    float n2 = snoise(norm * 8.5 - vec3(uTime * 0.28));
-    float n3 = snoise(norm * 16.0 + vec3(uTime * 0.5));
+    // 1. Directional Harmonic Peak Lobes (Creates 12-18 distinct sharp horn spikes across the sphere)
+    float n1 = snoise(norm * 3.4 + vec3(uTime * 0.15));
+    float n2 = snoise(norm * 6.8 - vec3(uTime * 0.25));
+    float n3 = snoise(norm * 14.0 + vec3(uTime * 0.45));
 
-    // Sharp inverted ridge noise: peaks form razor-sharp 3D needle spikes
-    float ridge1 = pow(1.0 - abs(n1), 3.4);
-    float ridge2 = pow(1.0 - abs(n2), 4.0) * 0.55;
-    float spikePattern = ridge1 + ridge2;
+    // Sharp spike curves: Isolated high-intensity peaks
+    float spikeHorns = pow(max(0.0, n1), 2.6) * 1.25 + pow(max(0.0, n2), 3.2) * 0.75;
 
-    // Direct beat & bass impulse trigger!
-    // Whenever the kick drum or bass hits, spikes shoot outward with immense punch!
-    float beatSpike = spikePattern * (uBeat * 1.35 + uBass * 0.85);
-    
-    // High-frequency jitter across fine sand grains from vocals & treble
-    float microSand = (n2 * 0.08 + n3 * 0.05) * (uMid + uTreble);
-    
-    // Ambient breathing
-    float breathe = sin(uTime * 1.8 + aRandom * 6.28) * 0.015;
+    // 2. Powerful Audio Beat Eruption:
+    // On bass/kick beats, the spike horns erupt radially outward dramatically!
+    float beatSurge = uBeat * 1.75 + uBass * 1.15;
+    float spikeDisp = spikeHorns * (0.04 + beatSurge * 0.82) * uDeform;
 
-    float totalDisp = (beatSpike + microSand + breathe) * uDeform;
+    // 3. Stardust micro-vibrations across grains from mid & treble
+    float grainRipple = (n2 * 0.06 + n3 * 0.035) * (uMid * 0.8 + uTreble * 0.5);
+
+    // 4. Subtle baseline cosmic breathing
+    float breathe = sin(uTime * 1.5 + aRandom * 6.28) * 0.015;
+
+    float totalDisp = spikeDisp + grainRipple + breathe;
     pos += norm * totalDisp;
 
-    // Tangential grain swirl on high beat moments
-    float swirl = (uBeat * 0.35 + uBass * 0.18) * n1;
+    // Tangential grain swirl during high energy drops
+    float swirl = (uBeat * 0.35 + uBass * 0.2) * n1 * length(pos.xy);
     pos.xz = mat2(cos(swirl), -sin(swirl), sin(swirl), cos(swirl)) * pos.xz;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // Point size perspective attenuation:
-    // Grains at spike peaks enlarge and become bright glowing stardust!
-    float isTip = smoothstep(0.20, 0.65, totalDisp);
-    float baseSize = aSize * (12.0 + isTip * 20.0 + uBeat * 14.0 + uBass * 6.0);
-    gl_PointSize = (baseSize * uPixelRatio) / -mvPosition.z;
-    gl_PointSize = clamp(gl_PointSize, 1.5, 36.0);
+    // 5. Delicate Grain Sizing (Crisp sand grains, not a blown out white blob!)
+    float spikeFactor = smoothstep(0.12, 0.55, totalDisp);
+    float baseSize = aSize * (3.8 + spikeFactor * 4.2 + uBeat * 2.5);
+    gl_PointSize = (baseSize * uPixelRatio * 180.0) / -mvPosition.z;
+    gl_PointSize = clamp(gl_PointSize, 1.5, 12.0);
 
-    // Color gradient based on displacement & audio energy
-    // Core: Deep warm bronze-gold (#B89358)
-    // Mid: Glowing Champagne (#E8D0A0)
-    // Spike tips: Incandescent Stardust White (#FFF8E7)
-    vec3 bronze = vec3(0.68, 0.52, 0.32);
-    vec3 champagne = vec3(0.85, 0.74, 0.52);
-    vec3 stardustTip = vec3(1.0, 0.98, 0.92);
+    // 6. Sophisticated Stardust Palette:
+    // Base Grains: Warm Champagne Gold (#C5A875 / #8E7348)
+    // Deep Body: Bronze Amber (#553E22)
+    // Spike Horn Tips: Brilliant Glowing Incandescent Ivory (#FFF8E7)
+    vec3 deepBody = vec3(0.42, 0.32, 0.18);
+    vec3 champagneGold = vec3(0.77, 0.66, 0.46);
+    vec3 glowingTip = vec3(1.0, 0.98, 0.92);
 
-    vec3 c = mix(bronze, champagne, clamp(uBass * 1.2, 0.0, 1.0));
-    c = mix(c, stardustTip, isTip * (0.6 + uBeat * 0.4));
+    vec3 c = mix(deepBody, champagneGold, 0.65 + aRandom * 0.35);
+    // Spike tips illuminate brightly with beat
+    c = mix(c, glowingTip, spikeFactor * (0.65 + uBeat * 0.35));
 
     vColor = c;
-    vAlpha = clamp(0.55 + isTip * 0.45 + uBeat * 0.35 + aRandom * 0.15, 0.35, 1.0);
-    vDist = totalDisp;
+    vAlpha = clamp(0.65 + spikeFactor * 0.35 + aRandom * 0.15, 0.45, 1.0);
+    vSpike = spikeFactor;
   }
 `
 
 const grainFragmentShader = `
   varying vec3 vColor;
   varying float vAlpha;
-  varying float vDist;
+  varying float vSpike;
 
   void main() {
-    // Make circular point sprites with soft feathered edge
+    // Soft circular sand grain point sprite
     vec2 coord = gl_PointCoord - vec2(0.5);
     float distSq = dot(coord, coord);
     if (distSq > 0.25) discard;
 
-    // Soft radial glow falloff
-    float alpha = smoothstep(0.25, 0.02, distSq) * vAlpha;
+    // Soft feathered edge falloff
+    float radial = smoothstep(0.25, 0.04, distSq);
 
-    // Inner bright specular core
-    float core = smoothstep(0.08, 0.0, distSq) * 0.6;
+    // Pinpoint bright specular center
+    float core = smoothstep(0.06, 0.0, distSq) * (0.6 + vSpike * 0.4);
     vec3 finalColor = vColor + vec3(core);
 
-    gl_FragColor = vec4(finalColor, alpha);
+    gl_FragColor = vec4(finalColor, radial * vAlpha);
   }
 `
 
@@ -156,19 +155,19 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const settings = useStore((s) => s.settings)
   const { size, viewport } = useThree()
 
-  // Dynamically adapt sphere scale to viewport so it never overwhelms mobile screens
+  // Responsive scale adapted to viewport
   const responsiveScale = useMemo(() => {
     if (size.width < 480 || viewport.aspect < 0.65) {
-      return scale * 0.65
+      return scale * 0.62
     }
     if (size.width < 640 || viewport.aspect < 0.85) {
-      return scale * 0.76
+      return scale * 0.74
     }
     if (size.width < 768 || viewport.aspect < 1.0) {
-      return scale * 0.86
+      return scale * 0.84
     }
     if (size.width < 1024) {
-      return scale * 0.94
+      return scale * 0.92
     }
     return scale
   }, [size.width, viewport.aspect, scale])
@@ -178,29 +177,29 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const smoothedMid = useRef(0)
   const smoothedTreble = useRef(0)
 
-  // Determine grain count based on quality setting
+  // Grain density calibrated for crisp visual fidelity without blowing out into solid white
   const grainCount = useMemo(() => {
     switch (settings.quality) {
       case 'ultra':
-        return 42000
+        return 36000
       case 'high':
-        return 32000
+        return 28000
       case 'medium':
-        return 24000
+        return 22000
       case 'low':
       default:
-        return 16000
+        return 14000
     }
   }, [settings.quality])
 
-  // Generate spherical point cloud with Fibonacci golden spiral distribution
+  // Golden ratio Fibonacci distribution for perfectly uniform grain sphere shell
   const [positions, normals, sizes, randoms] = useMemo(() => {
     const pos = new Float32Array(grainCount * 3)
     const norm = new Float32Array(grainCount * 3)
     const sz = new Float32Array(grainCount)
     const rnd = new Float32Array(grainCount)
 
-    const baseRadius = 0.95
+    const baseRadius = 0.92
     const goldenRatio = (1 + Math.sqrt(5)) / 2
 
     for (let i = 0; i < grainCount; i++) {
@@ -211,7 +210,8 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       const y = Math.sin(theta) * Math.sin(phi)
       const z = Math.cos(phi)
 
-      const jitter = 1.0 + (Math.random() - 0.5) * 0.05
+      // Subtle volumetric depth so grains feel like a tangible 3D cosmic field
+      const jitter = 1.0 + (Math.random() - 0.5) * 0.04
       const r = baseRadius * jitter
 
       pos[i * 3] = x * r
@@ -222,8 +222,8 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       norm[i * 3 + 1] = y
       norm[i * 3 + 2] = z
 
-      const isSpec = Math.random() < 0.08
-      sz[i] = isSpec ? 1.6 + Math.random() * 0.8 : 0.8 + Math.random() * 0.6
+      const isGlitter = Math.random() < 0.12
+      sz[i] = isGlitter ? 1.4 + Math.random() * 0.7 : 0.75 + Math.random() * 0.5
       rnd[i] = Math.random()
     }
 
@@ -237,7 +237,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       uMid: { value: 0 },
       uTreble: { value: 0 },
       uBeat: { value: 0 },
-      uDeform: { value: 1.25 },
+      uDeform: { value: 1.35 },
       uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) },
     }),
     [],
@@ -253,18 +253,18 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
     const rawMid = (a.mid ?? 0) * s.midSensitivity
     const rawTreble = (a.treble ?? 0) * s.trebleSensitivity
 
-    // Explosive attack for spikes (32.0) so spikes shoot out on the exact millisecond of the beat!
-    // Rapid but smooth release (9.0) so spikes snap back with elastic tension
-    const beatLerp = rawBeat > smoothedBeat.current ? 32.0 : 9.0
+    // Lightning-fast attack (35.0) for razor-sharp beat spikes
+    // Smooth elastic spring release (9.0)
+    const beatLerp = rawBeat > smoothedBeat.current ? 35.0 : 9.0
     smoothedBeat.current += (rawBeat - smoothedBeat.current) * Math.min(1.0, delta * beatLerp)
 
-    const bassLerp = rawBass > smoothedBass.current ? 20.0 : 8.0
+    const bassLerp = rawBass > smoothedBass.current ? 22.0 : 8.0
     smoothedBass.current += (rawBass - smoothedBass.current) * Math.min(1.0, delta * bassLerp)
 
     smoothedMid.current += (rawMid - smoothedMid.current) * Math.min(1.0, delta * 12.0)
     smoothedTreble.current += (rawTreble - smoothedTreble.current) * Math.min(1.0, delta * 12.0)
 
-    uniforms.uTime.value += delta * (0.75 + smoothedBeat.current * 0.8) * motion
+    uniforms.uTime.value += delta * (0.75 + smoothedBeat.current * 0.85) * motion
     uniforms.uBass.value = smoothedBass.current
     uniforms.uMid.value = smoothedMid.current
     uniforms.uTreble.value = smoothedTreble.current
@@ -273,10 +273,10 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
 
     if (pointsRef.current) {
       pointsRef.current.rotation.y += delta * 0.15 * motion
-      pointsRef.current.rotation.x = Math.sin(uniforms.uTime.value * 0.25) * 0.04
+      pointsRef.current.rotation.x = Math.sin(uniforms.uTime.value * 0.22) * 0.04
 
-      // Punchy sphere scale pump on kick drum
-      const pulse = 1.0 + smoothedBeat.current * 0.18 + smoothedBass.current * 0.08
+      // Punchy sphere scale expansion on beat
+      const pulse = 1.0 + smoothedBeat.current * 0.16 + smoothedBass.current * 0.07
       pointsRef.current.scale.setScalar(responsiveScale * pulse)
     }
   })
@@ -307,7 +307,7 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
         uniforms={uniforms}
         transparent
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={THREE.NormalBlending}
       />
     </points>
   )

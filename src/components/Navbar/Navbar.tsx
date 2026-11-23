@@ -35,42 +35,46 @@ export default function Navbar() {
         </span>
       </Link>
 
-      {/* Center — Navigation / World switcher */}
-      <nav className="hidden items-center gap-1 md:flex">
+      {/* Center — Navigation / World switcher (Perfect Centered Capsule) */}
+      <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-auto">
         {isExperience ? (
-          /* World switcher pills on Experience page */
-          worldIds.map((w) => (
-            <button
-              key={w}
-              onClick={() => setWorld(w)}
-              className={clsx(
-                'rounded-full px-3.5 py-1.5 font-sans text-[11px] font-medium tracking-wide capitalize transition-all duration-200',
-                world === w
-                  ? 'bg-text-primary text-bg-primary'
-                  : 'text-text-secondary hover:text-text-primary',
-              )}
-            >
-              {w}
-            </button>
-          ))
+          /* World switcher pills on Experience page: Space & Tunnel */
+          <div className="flex items-center rounded-full bg-white/[0.08] p-1 border border-white/[0.12] backdrop-blur-2xl shadow-xl">
+            {worldIds.map((w) => (
+              <button
+                key={w}
+                onClick={() => setWorld(w)}
+                className={clsx(
+                  'rounded-full px-4 py-1 font-display text-xs font-semibold tracking-wide capitalize transition-all duration-200',
+                  world === w
+                    ? 'bg-text-primary text-bg-primary shadow-md'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
+                )}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
         ) : (
           /* Standard nav links */
-          navLinks.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              className={({ isActive }) =>
-                clsx(
-                  'rounded-full px-3.5 py-1.5 font-sans text-[11px] font-medium tracking-wide transition-colors duration-200',
-                  isActive
-                    ? 'text-text-primary'
-                    : 'text-text-secondary hover:text-text-primary',
-                )
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))
+          <div className="hidden md:flex items-center gap-1 rounded-full bg-white/[0.04] p-1 border border-white/[0.06] backdrop-blur-xl">
+            {navLinks.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                className={({ isActive }) =>
+                  clsx(
+                    'rounded-full px-4 py-1.5 font-sans text-[11px] font-medium tracking-wide transition-colors duration-200',
+                    isActive
+                      ? 'bg-white/[0.1] text-text-primary shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary',
+                  )
+                }
+              >
+                {l.label}
+              </NavLink>
+            ))}
+          </div>
         )}
       </nav>
 
