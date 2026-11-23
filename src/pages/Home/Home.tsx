@@ -63,42 +63,37 @@ export default function Home() {
       <section className="relative flex h-[100vh] items-center justify-center overflow-hidden">
         <HeroCanvas />
 
-        {/* Gradient overlays with subtle radial vignette for crisp text contrast */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg-primary/50 via-bg-primary/20 to-bg-primary" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,9,9,0.55)_0%,transparent_75%)]" />
+        {/* Gradient overlays */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg-primary/30 via-transparent to-bg-primary" />
 
         {/* Hero content */}
         <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
-          <motion.div
+          <motion.p
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="mb-5 inline-block"
+            className="mb-5 font-sans text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.3em] text-champagne [text-shadow:_0_2px_10px_rgba(0,0,0,0.9)]"
           >
-            <span className="rounded-full bg-black/60 border border-champagne/35 px-4 py-1.5 font-sans text-[10px] font-semibold uppercase tracking-[0.28em] text-champagne backdrop-blur-xl shadow-lg">
-              A new dimension of music
-            </span>
-          </motion.div>
+            A new dimension of music
+          </motion.p>
 
           <motion.h1
             {...fadeUp}
             transition={{ duration: 0.9, delay: 0.25 }}
-            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-text-primary leading-[0.95] drop-shadow-[0_6px_30px_rgba(0,0,0,0.95)]"
+            className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-text-primary leading-[0.95] drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]"
           >
             ENTER THE
             <br />
             <span className="text-silver drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">FREQUENCY.</span>
           </motion.h1>
 
-          {/* Subtitle with high-contrast frosted glass plate for 100% crystal clear readability */}
-          <motion.div
+          {/* Clean Floating Subtitle with sharp text-shadow (No ugly box background) */}
+          <motion.p
             {...fadeUp}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="mx-auto mt-6 max-w-xl"
+            className="mx-auto mt-7 max-w-lg font-sans text-[15px] sm:text-[16px] font-medium leading-relaxed text-text-primary [text-shadow:_0_2px_12px_rgba(0,0,0,0.95),_0_0_8px_rgba(0,0,0,0.9)]"
           >
-            <p className="inline-block rounded-2xl bg-black/70 border border-white/[0.12] px-6 py-3 backdrop-blur-2xl shadow-2xl font-sans text-[14px] sm:text-[15px] font-medium leading-relaxed text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
-              Where every beat creates a world. Music analyzed in real&nbsp;time, shaping a living 3D environment around you.
-            </p>
-          </motion.div>
+            Where every beat creates a world. Music analyzed in real&nbsp;time, shaping a living 3D environment around you.
+          </motion.p>
 
           {/* Interactive Search Bar directly on Home Hero */}
           <motion.div
