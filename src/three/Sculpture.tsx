@@ -20,7 +20,7 @@ const grainVertexShader = `
 
   varying vec3 vColor;
   varying float vAlpha;
-  varying float vSpike;
+  varying float vDisplacement;
 
   // 3D Simplex noise
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -75,76 +75,74 @@ const grainVertexShader = `
     vec3 pos = position;
     vec3 norm = normalize(aNormal);
 
-    // 1. Directional Harmonic Peak Lobes (Creates 12-18 distinct sharp horn spikes across the sphere)
-    float n1 = snoise(norm * 3.4 + vec3(uTime * 0.15));
-    float n2 = snoise(norm * 6.8 - vec3(uTime * 0.25));
-    float n3 = snoise(norm * 14.0 + vec3(uTime * 0.45));
+    // 1. POWERFUL AUDIO BEAT RADIAL EXPANSION:
+    // On kick drum & bass transients, the grains sphere pushes vigorously outward!
+    float beatExp = (uBeat * 0.58 + uBass * 0.32) * uDeform;
 
-    // Sharp spike curves: Isolated high-intensity peaks
-    float spikeHorns = pow(max(0.0, n1), 2.6) * 1.25 + pow(max(0.0, n2), 3.2) * 0.75;
+    // 2. Grain Dispersal / Particle Burst on Beat:
+    // Individual grains scatter radially by varying amounts, creating an explosive burst of stardust!
+    float grainBurst = aRandom * (uBeat * 0.42 + uBass * 0.20) * uDeform;
 
-    // 2. Powerful Audio Beat Eruption:
-    // On bass/kick beats, the spike horns erupt radially outward dramatically!
-    float beatSurge = uBeat * 1.75 + uBass * 1.15;
-    float spikeDisp = spikeHorns * (0.04 + beatSurge * 0.82) * uDeform;
+    // 3. Audio-Reactive Harmonic Surface Spikes:
+    // Directional horns shooting outward along frequency peaks
+    float n1 = snoise(norm * 3.6 + vec3(uTime * 0.22));
+    float n2 = snoise(norm * 7.4 - vec3(uTime * 0.35));
+    float spikeCurve = pow(max(0.0, n1), 2.0) * 1.25 + pow(max(0.0, n2), 2.6) * 0.70;
+    float spikes = spikeCurve * (0.04 + uBeat * 0.90 + uBass * 0.60) * uDeform;
 
-    // 3. Stardust micro-vibrations across grains from mid & treble
-    float grainRipple = (n2 * 0.06 + n3 * 0.035) * (uMid * 0.8 + uTreble * 0.5);
+    // 4. Subtle baseline cosmic breathing (alive even when paused)
+    float idleBreathe = sin(uTime * 1.8 + aRandom * 6.28) * 0.022;
 
-    // 4. Subtle baseline cosmic breathing
-    float breathe = sin(uTime * 1.5 + aRandom * 6.28) * 0.015;
+    // 5. High-frequency micro-grain shimmer from treble & mids
+    float grainRipple = sin(norm.y * 16.0 + uTime * 5.0) * cos(norm.x * 16.0 + uTime * 4.0) * (uTreble * 0.045 + uMid * 0.03);
 
-    float totalDisp = spikeDisp + grainRipple + breathe;
+    float totalDisp = beatExp + grainBurst + spikes + idleBreathe + grainRipple;
     pos += norm * totalDisp;
 
-    // Tangential grain swirl during high energy drops
-    float swirl = (uBeat * 0.35 + uBass * 0.2) * n1 * length(pos.xy);
+    // Tangential particle vortex swirl during high energy drops
+    float swirl = (uBeat * 0.28 + uBass * 0.16) * n1 * length(pos.xy);
     pos.xz = mat2(cos(swirl), -sin(swirl), sin(swirl), cos(swirl)) * pos.xz;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // 5. Delicate Grain Sizing (Crisp sand grains, not a blown out white blob!)
-    float spikeFactor = smoothstep(0.12, 0.55, totalDisp);
-    float baseSize = aSize * (3.8 + spikeFactor * 4.2 + uBeat * 2.5);
-    gl_PointSize = (baseSize * uPixelRatio * 180.0) / -mvPosition.z;
-    gl_PointSize = clamp(gl_PointSize, 1.5, 12.0);
+    // 6. Distinct Sand Grain Point Sizing (Crisp granular separation, NOT a solid opaque wall!)
+    float dispFactor = clamp(totalDisp * 1.4, 0.0, 1.0);
+    float pSize = aSize * (2.8 + dispFactor * 2.4 + uBeat * 1.8);
+    gl_PointSize = (pSize * uPixelRatio * 125.0) / -mvPosition.z;
+    gl_PointSize = clamp(gl_PointSize, 1.4, 7.0);
 
-    // 6. Sophisticated Stardust Palette:
-    // Base Grains: Warm Champagne Gold (#C5A875 / #8E7348)
-    // Deep Body: Bronze Amber (#553E22)
-    // Spike Horn Tips: Brilliant Glowing Incandescent Ivory (#FFF8E7)
-    vec3 deepBody = vec3(0.42, 0.32, 0.18);
-    vec3 champagneGold = vec3(0.77, 0.66, 0.46);
-    vec3 glowingTip = vec3(1.0, 0.98, 0.92);
+    // 7. Rich Cosmic Sand Palette (Deep Bronze Body, Warm Golden Amber Grains, Incandescent Ivory Spikes)
+    vec3 deepBronze = vec3(0.24, 0.16, 0.08);
+    vec3 goldenSand = vec3(0.86, 0.68, 0.38);
+    vec3 brightIvory = vec3(1.0, 0.98, 0.92);
 
-    vec3 c = mix(deepBody, champagneGold, 0.65 + aRandom * 0.35);
-    // Spike tips illuminate brightly with beat
-    c = mix(c, glowingTip, spikeFactor * (0.65 + uBeat * 0.35));
+    vec3 c = mix(deepBronze, goldenSand, 0.45 + aRandom * 0.55);
+    c = mix(c, brightIvory, dispFactor * 0.75);
 
     vColor = c;
-    vAlpha = clamp(0.65 + spikeFactor * 0.35 + aRandom * 0.15, 0.45, 1.0);
-    vSpike = spikeFactor;
+    vAlpha = clamp(0.55 + aRandom * 0.35 + dispFactor * 0.1, 0.35, 0.92);
+    vDisplacement = totalDisp;
   }
 `
 
 const grainFragmentShader = `
   varying vec3 vColor;
   varying float vAlpha;
-  varying float vSpike;
+  varying float vDisplacement;
 
   void main() {
-    // Soft circular sand grain point sprite
+    // Sharp circular sand grain point sprite
     vec2 coord = gl_PointCoord - vec2(0.5);
     float distSq = dot(coord, coord);
     if (distSq > 0.25) discard;
 
-    // Soft feathered edge falloff
-    float radial = smoothstep(0.25, 0.04, distSq);
+    // Crisp falloff so grains retain particle identity and don't blur into opaque soup
+    float radial = smoothstep(0.25, 0.06, distSq);
 
-    // Pinpoint bright specular center
-    float core = smoothstep(0.06, 0.0, distSq) * (0.6 + vSpike * 0.4);
-    vec3 finalColor = vColor + vec3(core);
+    // Glistening grain nucleus
+    float core = smoothstep(0.08, 0.0, distSq) * (0.35 + clamp(vDisplacement * 0.5, 0.0, 0.65));
+    vec3 finalColor = vColor + vec3(core * 0.45);
 
     gl_FragColor = vec4(finalColor, radial * vAlpha);
   }
@@ -243,53 +241,53 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
   const smoothedMid = useRef(0)
   const smoothedTreble = useRef(0)
 
-  // Grain density calibrated for crisp visual fidelity without blowing out into solid white
+  // Grain density calibrated for crisp granular visibility (distinct particles, no solid white wall)
   const grainCount = useMemo(() => {
     switch (settings.quality) {
       case 'ultra':
-        return 36000
-      case 'high':
-        return 28000
-      case 'medium':
         return 22000
+      case 'high':
+        return 16000
+      case 'medium':
+        return 12000
       case 'low':
       default:
-        return 14000
+        return 8000
     }
   }, [settings.quality])
 
-  // Golden ratio Fibonacci distribution for perfectly uniform grain sphere shell
+  // Golden ratio Fibonacci distribution with volumetric grain depth
   const [positions, normals, sizes, randoms] = useMemo(() => {
     const pos = new Float32Array(grainCount * 3)
     const norm = new Float32Array(grainCount * 3)
     const sz = new Float32Array(grainCount)
     const rnd = new Float32Array(grainCount)
 
-    const baseRadius = 0.92
+    const baseRadius = 0.95
     const goldenRatio = (1 + Math.sqrt(5)) / 2
 
     for (let i = 0; i < grainCount; i++) {
       const theta = 2 * Math.PI * i / goldenRatio
       const phi = Math.acos(1 - 2 * (i + 0.5) / grainCount)
 
-      const x = Math.cos(theta) * Math.sin(phi)
-      const y = Math.sin(theta) * Math.sin(phi)
-      const z = Math.cos(phi)
+      const nx = Math.cos(theta) * Math.sin(phi)
+      const ny = Math.sin(theta) * Math.sin(phi)
+      const nz = Math.cos(phi)
 
-      // Subtle volumetric depth so grains feel like a tangible 3D cosmic field
-      const jitter = 1.0 + (Math.random() - 0.5) * 0.04
-      const r = baseRadius * jitter
+      // Volumetric grain thickness so particles have palpable 3D depth
+      const shellThickness = (Math.random() - 0.5) * 0.10
+      const r = baseRadius * (1.0 + shellThickness)
 
-      pos[i * 3] = x * r
-      pos[i * 3 + 1] = y * r
-      pos[i * 3 + 2] = z * r
+      pos[i * 3] = nx * r
+      pos[i * 3 + 1] = ny * r
+      pos[i * 3 + 2] = nz * r
 
-      norm[i * 3] = x
-      norm[i * 3 + 1] = y
-      norm[i * 3 + 2] = z
+      norm[i * 3] = nx
+      norm[i * 3 + 1] = ny
+      norm[i * 3 + 2] = nz
 
-      const isGlitter = Math.random() < 0.12
-      sz[i] = isGlitter ? 1.4 + Math.random() * 0.7 : 0.75 + Math.random() * 0.5
+      const isGlitter = Math.random() < 0.16
+      sz[i] = isGlitter ? 1.6 + Math.random() * 0.8 : 0.75 + Math.random() * 0.5
       rnd[i] = Math.random()
     }
 
@@ -355,8 +353,8 @@ export default function Sculpture({ scale = 1, position = [0, 0, 0] as [number, 
       pointsRef.current.rotation.y = rotationEuler.current.y
       pointsRef.current.rotation.x = rotationEuler.current.x
 
-      // Punchy sphere scale expansion on beat
-      const pulse = 1.0 + smoothedBeat.current * 0.16 + smoothedBass.current * 0.07
+      // Dramatic sphere scale expansion on beat (+50% to +80% surge on kick drums)
+      const pulse = 1.0 + smoothedBeat.current * 0.52 + smoothedBass.current * 0.28
       pointsRef.current.scale.setScalar(responsiveScale * pulse)
     }
   })
